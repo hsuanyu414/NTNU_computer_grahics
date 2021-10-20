@@ -144,6 +144,7 @@ function main(){
 //Call this funtion when we have to update the screen (eg. user input happens)
 function redraw(gl)
 {
+    console.log(tx+" "+redAngle+" "+greenAngle+" "+yellowAngle);
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
@@ -161,6 +162,7 @@ function redraw(gl)
     transformMat.setIdentity();
     //TODO-1: translate whole robot here
     transformMat.translate(0.0, -0.5, 0.0);
+    transformMat.translate(tx, 0.0, 0.0);
     pushMatrix();
     transformMat.scale(1.0, 0.4, 0.0);
     gl.uniformMatrix4fv(u_modelMatrix, false, transformMat.elements);
@@ -170,7 +172,7 @@ function redraw(gl)
     buffer1 = initArrayBuffer(gl, new Float32Array(redColor), 3, gl.FLOAT, 'a_Color');
     //TODO-2: make the red arm rotate
     transformMat.translate(0.0, 0.2, 0.0);
-    transformMat.rotate(-20, 0.0, 0.0, 1.0);
+    transformMat.rotate(redAngle, 0.0, 0.0, 1.0);
     transformMat.translate(0.0, 0.5, 0.0);
     pushMatrix();
     transformMat.scale(0.2, 1.2, 0.0);
@@ -181,11 +183,25 @@ function redraw(gl)
     buffer1 = initArrayBuffer(gl, new Float32Array(greenColor), 3, gl.FLOAT, 'a_Color');
     //TODO-3: you may add some functions here 
     //        and modify translate() in next line to rotate the green bar
-    transformMat.translate(0.2, 0.5, 0.0);
+    transformMat.translate(0.0, 0.5, 0.0);
+    transformMat.rotate(greenAngle, 0.0, 0.0, 1.0);
+    transformMat.translate(0.2, 0.0, 0.0);
     pushMatrix(); //for one more yellow
     transformMat.scale(0.6, 0.15, 0.0);
     gl.uniformMatrix4fv(u_modelMatrix, false, transformMat.elements);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, rectVertices.length/2);//draw the green one
 
     //TODO-4: add code here to draw and rotate the yelloe block
+    popMatrix();
+    buffer1 = initArrayBuffer(gl, new Float32Array(yellowColor), 3, gl.FLOAT, 'a_Color');
+    transformMat.translate(0.2, 0.05, 0.0);
+    transformMat.rotate(yellowAngle, 0.0, 0.0, 1.0);
+    transformMat.translate(0.0, -0.3, 0.0);
+    pushMatrix();
+    transformMat.scale(0.1, 0.6, 0.0);
+    gl.uniformMatrix4fv(u_modelMatrix, false, transformMat.elements);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, rectVertices.length/2);//draw the green one
+
+
+
 }
