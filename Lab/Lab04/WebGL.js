@@ -194,13 +194,13 @@ function redraw(gl)
     //TODO-4: add code here to draw and rotate the yelloe block
     popMatrix();
     buffer1 = initArrayBuffer(gl, new Float32Array(yellowColor), 3, gl.FLOAT, 'a_Color');
-    transformMat.translate(0.2, 0.05, 0.0);
+    transformMat.translate(0.24, 0.075, 0.0);
     transformMat.rotate(yellowAngle, 0.0, 0.0, 1.0);
-    transformMat.translate(0.0, -0.3, 0.0);
+    transformMat.translate(0.0, -0.25, 0.0);
     pushMatrix();
-    transformMat.scale(0.1, 0.6, 0.0);
+    transformMat.scale(0.12, 0.5, 0.0);
     gl.uniformMatrix4fv(u_modelMatrix, false, transformMat.elements);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, rectVertices.length/2);//draw the green one
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, rectVertices.length/2);//draw the yellow one
 
 
 
