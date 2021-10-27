@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>WebPage Title </title>
+    </head>
+
+    <body onload="main()">
+        <canvas id="webgl" width = "400" height = "400">
+            Please use a browser that support "canvas"
+        </canvas>
+        <script src="cuon-matrix.js"></script>
+        <script src="WebGL.js"></script>
+        <div class="slidecontainer0">
+            Robot-X: <input type="range" min="-100" max="100" value="0" class="slider" id="Translate-X">
+            Robot-Y: <input type="range" min="-100" max="100" value="0" class="slider" id="Translate-Y">
+        </div>
+        <div class="slidecontainer1">
+            Joint 1:<input type="range" min="0" max="45" value="0" class="slider" id="jointFor1">
+            Joint 2:<input type="range" min="0" max="45" value="0" class="slider" id="jointFor2">
+            Joint 3:<input type="range" min="0" max="45" value="0" class="slider" id="jointFor3">
+        </div>
+        <div class="slidecontainer2">
+            Robot Size:<input type="range" min="1" max="10" value="0" class="slider" id="sizeForRobot">
+        </div>
+    </body>
+</html>
+
+
