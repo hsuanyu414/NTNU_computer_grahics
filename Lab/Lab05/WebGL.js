@@ -182,7 +182,7 @@ function main(){
     gl.enable(gl.SCISSOR_TEST);//enable scissor test to only apply background clear on one viewport
 
     frontViewMatrix.setLookAt(0, 0, -10, 0, 0, 100, 0, 1, 0);
-    pespProjMatrix.setPerspective(30, canvas.width/canvas.height, 1, 100);
+    pespProjMatrix.setPerspective(30, canvas.width/(canvas.height), 1, 100);
 
     canvas.onmousedown = function(ev){mouseDown(ev)};
     canvas.onmousemove = function(ev){mouseMove(ev)};
@@ -257,8 +257,6 @@ function mouseMove(ev){
     modelMatrix1.translate(0, 0, 0);
 
     //this only draw one set of triangles because we pass "null" for the last argument
-    drawOneViewport(gl, 0, 0, canvas.width, canvas.height,
-                    0, 0, 0,
-                    pespProjMatrix, frontViewMatrix, modelMatrix1, null );
-
+    drawOneViewport(gl, 0, canvas.height/2, canvas.width, canvas.height/2,0.1, 0.1, 0.1,pespProjMatrix, frontViewMatrix, modelMatrix1, null );
+    drawOneViewport(gl, 0, 0, canvas.width/2, canvas.height/2, 0.2, 0.2, 0.2, pespProjMatrix, frontViewMatrix, modelMatrix1, null);
 }
