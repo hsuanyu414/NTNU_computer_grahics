@@ -166,22 +166,55 @@ function redraw(gl)
     gl.useProgram(program);
     u_modelMatrix = gl.getUniformLocation(gl.getParameter(gl.CURRENT_PROGRAM), 'u_modelMatrix');
     
-    rectVertices = [-0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, -0.5]; 
-    var redColor = [1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 ];
-    var greenColor = [0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0 ];
-    var blueColor = [0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0 ];
-    var yellowColor = [1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0 ];
+
+    triVertices = [0.0, 0.5, 0.3, -0.5, -0.3, -0.5];
+    var triRedColor = [1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 ];
+    var triGreenColor = [0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0 ];
+    var triBlueColor = [0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0];
+    rectVertices = [-0.5, 0.5, 0.5, 0.5, -0.5, -0.5, 0.5, -0.5];
+    var rectRedColor = [1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 ];
+    var rectGreenColor = [0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0 ];
+    var rectBlueColor = [0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0];
+    cirVertices = [0.0, 0.0]
+    var cirRedColor = [1.0, 0.0, 0.0 ];
+    var cirGreenColor = [0.0, 1.0, 0.0];
+    var cirBlueColor = [0.0, 0.0, 1.0];
+    var r = 0.1 
+    for(var i = 0 ; i <= 100 ; i ++){
+        var theta = i * 2 * Math.PI / 100;
+        var x = r * Math.sin(theta);
+        var y = r * Math.cos(theta);
+        cirVertices.push(x, y);
+        cirRedColor.push(1.0, 0.0, 0.0);
+        cirGreenColor.push(0.0, 1.0, 0.0);
+        cirBlueColor.push(0.0, 0.0, 1.0);
+    } 
+
     buffer0 = initArrayBuffer(gl, new Float32Array(rectVertices), 2, gl.FLOAT, 'a_Position');
-    buffer1 = initArrayBuffer(gl, new Float32Array(blueColor), 3, gl.FLOAT, 'a_Color');
+    buffer1 = initArrayBuffer(gl, new Float32Array(rectBlueColor), 3, gl.FLOAT, 'a_Color');
 
     transformMat.setIdentity();
     //TODO-1: translate whole robot here
     transformMat.translate(0.0, -0.5, 0.0);
     transformMat.translate(tx, ty, 0.0);
+    transformMat.scale(1.0*robotSize, 1.0*robotSize, 1.0*robotSize);
     pushMatrix();
     transformMat.scale(1.0*robotSize, 0.4*robotSize, 0.0*robotSize);
     gl.uniformMatrix4fv(u_modelMatrix, false, transformMat.elements);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, rectVertices.length/2);//draw the blue one
+
+    popMatrix();
+    buffer0 = initArrayBuffer(gl, new Float32Array(cirVertices), 2, gl.FLOAT, 'a_Position');
+    buffer1 = initArrayBuffer(gl, new Float32Array(cirRedColor), 3, gl.FLOAT, 'a_Color');
+    pushMatrix();
+    transformMat.translate(-0.5, -0.2, 0.0) ;
+    gl.uniformMatrix4fv(u_modelMatrix, false, transformMat.elements);
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, cirVertices.length/2);//draw the blue one
+    popMatrix();
+    transformMat.translate(0.5, -0.2, 0.0);
+    gl.uniformMatrix4fv(u_modelMatrix, false, transformMat.elements);
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, cirVertices.length/2);//draw the blue one
+    
 
     // popMatrix();
     // buffer1 = initArrayBuffer(gl, new Float32Array(redColor), 3, gl.FLOAT, 'a_Color');
