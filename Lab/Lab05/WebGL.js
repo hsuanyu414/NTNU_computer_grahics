@@ -143,13 +143,17 @@ var colors = new Float32Array(//9 vertices (three triangles)'s color
 
            0.0, 0.0, 0.7, 
            0.0, 0.0, 0.7, 
-           0.0, 0.0, 0.7, 
+           0.0, 0.0, 0.7,
        ]   
       );
 
 var modelMatrix1 = new Matrix4();
+var modelMatrix2 = new Matrix4();
 var frontViewMatrix = new Matrix4();
-var pespProjMatrix = new Matrix4();
+var backViewMatrix = new Matrix4();
+var pespProjMatrix1to1 = new Matrix4();
+var pespProjMatrix1to2 = new Matrix4();
+var orthoProMatrix1to1 = new Matrix4();
 var transformMat = new Matrix4();
 var mouseLastX, mouseLastY;
 var mouseDragging = false;
@@ -182,7 +186,11 @@ function main(){
     gl.enable(gl.SCISSOR_TEST);//enable scissor test to only apply background clear on one viewport
 
     frontViewMatrix.setLookAt(0, 0, -10, 0, 0, 100, 0, 1, 0);
-    pespProjMatrix.setPerspective(30, canvas.width/(canvas.height), 1, 100);
+    backViewMatrix.setLookAt(0, 0, 10, 0, 0, -100, 0, 1, 0);
+
+    pespProjMatrix1to1.setPerspective(30, canvas.width/(canvas.height), 1, 100);
+    pespProjMatrix1to2.setPerspective(30, canvas.width/(canvas.height/2), 1, 100);
+    orthoProMatrix1to1.setOrtho(-2, 2, -2, 2, 1, 100)
 
     canvas.onmousedown = function(ev){mouseDown(ev)};
     canvas.onmousemove = function(ev){mouseMove(ev)};
@@ -254,9 +262,14 @@ function mouseMove(ev){
     //call drawOneViewPort three times to draw the three views
     modelMatrix1.setRotate(-angleY, 1, 0, 0);
     modelMatrix1.rotate(angleX, 0, 1, 0);
-    modelMatrix1.translate(0, 0, 0);
+    modelMatrix1.translate(0.75, 0, 0);
+
+    modelMatrix2.setRotate(-angleY, 1, 0, 0);
+    modelMatrix2.rotate(angleX, 0, 1, 0);
+    modelMatrix2.translate(-0.75, 0, 0);
 
     //this only draw one set of triangles because we pass "null" for the last argument
-    drawOneViewport(gl, 0, canvas.height/2, canvas.width, canvas.height/2,0.1, 0.1, 0.1,pespProjMatrix, frontViewMatrix, modelMatrix1, null );
-    drawOneViewport(gl, 0, 0, canvas.width/2, canvas.height/2, 0.2, 0.2, 0.2, pespProjMatrix, frontViewMatrix, modelMatrix1, null);
+    drawOneViewport(gl, 0, canvas.height/2, canvas.width, canvas.height/2,0.7, 0.7, 0.7,pespProjMatrix1to2, backViewMatrix, modelMatrix1, modelMatrix2 );
+    drawOneViewport(gl, 0, 0, canvas.width/2, canvas.height/2, 0, 0, 0, pespProjMatrix1to1, frontViewMatrix, modelMatrix1, modelMatrix2);
+    drawOneViewport(gl, canvas.width/2, 0, canvas.width/2, canvas.height/2, 0.3, 0.3, 0.3, orthoProMatrix1to1, frontViewMatrix, modelMatrix1, modelMatrix2);
 }
