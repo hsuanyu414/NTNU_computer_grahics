@@ -130,14 +130,14 @@ function main(){
     //setup the call back function of red arm rotation Sliders
     var joint1Slider = document.getElementById("jointFor1");
     joint1Slider.oninput = function() {
-        Angle1 = this.value;
+        Angle1 = this.value * -1;
         redraw(gl);
     }
 
     //setup the call back function of green arm rotation Sliders
     var joint2Slider = document.getElementById("jointFor2");
     joint2Slider.oninput = function() {
-        Angle2 = this.value; //convert sliders value to 0 to 45 degrees
+        Angle2 = this.value * -1; //convert sliders value to 0 to 45 degrees
         redraw(gl);
     }
 
@@ -167,7 +167,7 @@ function redraw(gl)
     u_modelMatrix = gl.getUniformLocation(gl.getParameter(gl.CURRENT_PROGRAM), 'u_modelMatrix');
     
 
-    triVertices = [0.0, 0.5, 0.3, -0.5, -0.3, -0.5];
+    triVertices = [0.0, 0.4, 0.3, -0.5, -0.3, -0.5];
     var triRedColor = [1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 ];
     var triGreenColor = [0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0 ];
     var triBlueColor = [0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0];
@@ -179,7 +179,7 @@ function redraw(gl)
     var cirRedColor = [1.0, 0.0, 0.0 ];
     var cirGreenColor = [0.0, 1.0, 0.0];
     var cirBlueColor = [0.0, 0.0, 1.0];
-    var r = 0.1 
+    var r = 0.1
     for(var i = 0 ; i <= 100 ; i ++){
         var theta = i * 2 * Math.PI / 100;
         var x = r * Math.sin(theta);
@@ -197,23 +197,95 @@ function redraw(gl)
     //TODO-1: translate whole robot here
     transformMat.translate(0.0, -0.5, 0.0);
     transformMat.translate(tx, ty, 0.0);
-    transformMat.scale(1.0*robotSize, 1.0*robotSize, 1.0*robotSize);
+    transformMat.scale(robotSize, robotSize, robotSize);
     pushMatrix();
-    transformMat.scale(1.0*robotSize, 0.4*robotSize, 0.0*robotSize);
+    transformMat.scale(0.4, 0.2, 0.0);
     gl.uniformMatrix4fv(u_modelMatrix, false, transformMat.elements);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, rectVertices.length/2);//draw the blue one
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, rectVertices.length/2);
+
+    transformMat.translate(-0.2, 0.85, 0.0);
+    transformMat.scale(0.5, 0.7, 0.0)
+    buffer0 = initArrayBuffer(gl, new Float32Array(rectVertices), 2, gl.FLOAT, 'a_Position');
+    buffer1 = initArrayBuffer(gl, new Float32Array(rectGreenColor), 3, gl.FLOAT, 'a_Color');
+    gl.uniformMatrix4fv(u_modelMatrix, false, transformMat.elements);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, rectVertices.length/2);
+
 
     popMatrix();
+    pushMatrix();
     buffer0 = initArrayBuffer(gl, new Float32Array(cirVertices), 2, gl.FLOAT, 'a_Position');
     buffer1 = initArrayBuffer(gl, new Float32Array(cirRedColor), 3, gl.FLOAT, 'a_Color');
-    pushMatrix();
-    transformMat.translate(-0.5, -0.2, 0.0) ;
+    transformMat.translate(-0.2, -0.1, 0.0) ;
     gl.uniformMatrix4fv(u_modelMatrix, false, transformMat.elements);
-    gl.drawArrays(gl.TRIANGLE_FAN, 0, cirVertices.length/2);//draw the blue one
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, cirVertices.length/2);
+    transformMat.translate(0.4, 0.0, 0.0);
+    gl.uniformMatrix4fv(u_modelMatrix, false, transformMat.elements);
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, cirVertices.length/2);
     popMatrix();
-    transformMat.translate(0.5, -0.2, 0.0);
+
+    transformMat.translate(0.15, 0.1, 0.0);
+    
+    pushMatrix();
+    transformMat.scale(0.3, 0.3, 0.0);
+    buffer0 = initArrayBuffer(gl, new Float32Array(cirVertices), 2, gl.FLOAT, 'a_Position');
+    buffer1 = initArrayBuffer(gl, new Float32Array(cirRedColor), 3, gl.FLOAT, 'a_Color');
     gl.uniformMatrix4fv(u_modelMatrix, false, transformMat.elements);
-    gl.drawArrays(gl.TRIANGLE_FAN, 0, cirVertices.length/2);//draw the blue one
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, cirVertices.length/2);
+    popMatrix();
+
+    transformMat.rotate(Angle1, 0.0, 0.0, 1.0);
+
+    pushMatrix();
+    transformMat.translate(0.0, 0.13, 0.0);
+    transformMat.scale(0.05, 0.2, 0.0);
+    buffer0 = initArrayBuffer(gl, new Float32Array(rectVertices), 2, gl.FLOAT, 'a_Position');
+    buffer1 = initArrayBuffer(gl, new Float32Array(rectGreenColor), 3, gl.FLOAT, 'a_Color');
+    gl.uniformMatrix4fv(u_modelMatrix, false, transformMat.elements);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, rectVertices.length/2);
+    popMatrix();
+
+    transformMat.translate(0.0, 0.26, 0.0);
+    
+    pushMatrix();
+    transformMat.scale(0.3, 0.3, 0.0);
+    buffer0 = initArrayBuffer(gl, new Float32Array(cirVertices), 2, gl.FLOAT, 'a_Position');
+    buffer1 = initArrayBuffer(gl, new Float32Array(cirRedColor), 3, gl.FLOAT, 'a_Color');
+    gl.uniformMatrix4fv(u_modelMatrix, false, transformMat.elements);
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, cirVertices.length/2);
+    popMatrix();
+
+    transformMat.rotate(Angle2, 0.0, 0.0, 1.0);
+
+    pushMatrix();
+    transformMat.translate(0.0, 0.13, 0.0);
+    transformMat.scale(0.05, 0.2, 0.0);
+    buffer0 = initArrayBuffer(gl, new Float32Array(rectVertices), 2, gl.FLOAT, 'a_Position');
+    buffer1 = initArrayBuffer(gl, new Float32Array(rectGreenColor), 3, gl.FLOAT, 'a_Color');
+    gl.uniformMatrix4fv(u_modelMatrix, false, transformMat.elements);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, rectVertices.length/2);
+    popMatrix();
+
+    transformMat.translate(0.0, 0.26, 0.0);
+    
+    pushMatrix();
+    transformMat.scale(0.3, 0.3, 0.0);
+    buffer0 = initArrayBuffer(gl, new Float32Array(cirVertices), 2, gl.FLOAT, 'a_Position');
+    buffer1 = initArrayBuffer(gl, new Float32Array(cirRedColor), 3, gl.FLOAT, 'a_Color');
+    gl.uniformMatrix4fv(u_modelMatrix, false, transformMat.elements);
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, cirVertices.length/2);
+    popMatrix();
+
+    transformMat.rotate(Angle3, 0.0, 0.0, 1.0);
+
+    pushMatrix();
+    transformMat.translate(0.15, 0.08, 0.0);
+    //transformMat.rotate(-45, 0.0, 0.0, 1.0);
+    transformMat.scale(0.5, 0.1, 0.0);
+    buffer0 = initArrayBuffer(gl, new Float32Array(triVertices), 2, gl.FLOAT, 'a_Position');
+    buffer1 = initArrayBuffer(gl, new Float32Array(triGreenColor), 3, gl.FLOAT, 'a_Color');
+    gl.uniformMatrix4fv(u_modelMatrix, false, transformMat.elements);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, triVertices.length/2);
+    popMatrix();
     
 
     // popMatrix();
