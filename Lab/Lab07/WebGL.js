@@ -278,16 +278,27 @@ function draw(){
 
     //Cube (ground)
     //TODO-1: set mdlMatrix for the cube
-    mdlMatrix.scale(1.0, 1.0, 0.05);
+    mdlMatrix.scale(2.0, 0.1, 2.0);
     drawOneObject(cube, mdlMatrix, 1.0, 0.4, 0.4);
-
+    mdlMatrix.scale(1/2.0, 1/0.1, 1/2.0);
+    
     //mario
     //TODO-2: set mdlMatrix for mario
-    //drawOneObject(mario, mdlMatrix, 0.4, 1.0, 0.4);
-
+    mdlMatrix.scale(0.01, 0.01, 0.01);
+    mdlMatrix.translate(-100.0, 75.0, -100.0);
+    drawOneObject(mario, mdlMatrix, 0.4, 1.0, 0.4);
+    mdlMatrix.translate(100.0, -75.0, 100.0);
+    mdlMatrix.scale(1/0.01, 1/0.01, 1/0.01);
+    
     //sonic
     //TODO-3: set mdlMatrix for sonic (include rotation and movement)
-    //drawOneObject(sonic, mdlMatrix, 0.4, 0.4, 1.0);
+    mdlMatrix.scale(0.05, 0.05, 0.05);
+    mdlMatrix.translate(moveDistance*15, 2.0, 0.0);
+    mdlMatrix.rotate(rotateAngle, 0.0, 1.0, 0.0);
+    drawOneObject(sonic, mdlMatrix, 0.4, 0.4, 1.0);
+    mdlMatrix.rotate(-rotateAngle, 0.0, 1.0, 0.0);
+    mdlMatrix.translate(0.0, -2.0, 0.0);
+    mdlMatrix.scale(1/0.01, 1/0.01, 1/0.01);
 }
 
 //obj: the object components
