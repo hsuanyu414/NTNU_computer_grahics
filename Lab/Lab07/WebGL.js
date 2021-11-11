@@ -297,7 +297,7 @@ function draw(){
     mdlMatrix.rotate(rotateAngle, 0.0, 1.0, 0.0);
     drawOneObject(sonic, mdlMatrix, 0.4, 0.4, 1.0);
     mdlMatrix.rotate(-rotateAngle, 0.0, 1.0, 0.0);
-    mdlMatrix.translate(0.0, -2.0, 0.0);
+    mdlMatrix.translate(-moveDistance*15, -2.0, 0.0);
     mdlMatrix.scale(1/0.01, 1/0.01, 1/0.01);
 }
 
