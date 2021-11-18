@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>WebPage Title </title>
+    </head>
+
+    <body onload="main()">
+        <canvas id="webgl" width = "800" height = "800">
+            Please use a browser that support "canvas"
+        </canvas>
+        <script src="cuon-matrix.js"></script>
+        <script src="WebGL.js"></script>
+        <div class="slidecontainer1">
+            MoveX:<input type="range" min="-100" max="100" value="0" class="slider" id="moveX">
+            MoveY:<input type="range" min="-100" max="100" value="0" class="slider" id="moveY">
+            Zoom:<input type="range" min="-200" max="100" value="0" step="any" class="slider" id="zoom">
+        </div>
+        <div class="slidecontainer1">
+            Joint1:<input type="range" min="-100" max="100" value="0" class="slider" id="joint1">
+            Joint2:<input type="range" min="-100" max="100" value="0" class="slider" id="joint2">
+        </div>
+    </body>
+</html>
+
+
