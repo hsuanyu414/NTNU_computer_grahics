@@ -332,7 +332,7 @@ function draw(){
     //cube (light)
     mdlMatrix.translate(0, 5, 3);
     mdlMatrix.scale(0.1 , 0.1 , 0.1 );
-    drawOneStaticObject(cube, mdlMatrix, 1.0, 1.0, 1.0);
+    drawOneObject(cube, mdlMatrix, 1.0, 1.0, 1.0);
     popMatrix(); 
 
     pushMatrix();
@@ -359,8 +359,10 @@ function draw(){
     drawOneObject(fox, mdlMatrix, 0.4, 0.4, 1.0);
     popMatrix();
 
+    //============================== THE CUSTOM OBJECT ==============================
+    pushMatrix();//FOR THE CUSTOM OBJECT
 
-    pushMatrix();
+
     mdlMatrix.translate(x, 0, -y);
     mdlMatrix.rotate(x*100, 0, 1, 0);
     mdlMatrix.rotate(y*100, 0, 1, 0);
@@ -368,25 +370,54 @@ function draw(){
 
     pushMatrix();
     //pyramid
-    mdlMatrix.scale(0.04, 0.04, 0.04);
+    mdlMatrix.scale(0.03, 0.04, 0.03);
     drawOneObject(pyramid, mdlMatrix, 1.0, 1.0, 1,0);
     popMatrix();
 
     pushMatrix();
     mdlMatrix.scale(0.2, 0.2 ,0.2);
-    mdlMatrix.translate(0.0, 5.0, 0.0);  
+    mdlMatrix.translate(0.0, 4.0, 0.0);
+    // mdlMatrix.rotate(x*100, 1, 0, 0);
+    // mdlMatrix.rotate(y*100, 1, 0, 0);
+    // mdlMatrix.rotate(angle2, 1, 0, 0);
+    mdlMatrix.translate(0.0, 1.0, 0.0);
     drawOneObject(cube, mdlMatrix, 0.0, 1.0, 1.0);
     popMatrix();
 
     pushMatrix();
-    mdlMatrix.scale(0.01, 0.01, 0.01)
+    mdlMatrix.translate(0.2, 0.5, 0.0);
+    pushMatrix();
+    mdlMatrix.scale(0.04, 0.04, 0.04);
+    drawOneObject(sphere, mdlMatrix, 1.0, 1.0, 0.0);
+    popMatrix();
+    mdlMatrix.rotate(angle2, 1, 1, 0);
+    mdlMatrix.rotate(x*100, 1, 1, 0);
+    mdlMatrix.rotate(y*100, 1, 1, 0);
+    pushMatrix();
+    mdlMatrix.scale(0.25, 0.05, 0.05);
+    mdlMatrix.translate(1.4, 0.5, 0.0);
+    drawOneObject(cube, mdlMatrix, 1.0, 0.0, 0.0);
+    popMatrix();
+    popMatrix();
 
-    popMatrix();  
+    pushMatrix();
+    mdlMatrix.translate(-0.2, 0.5, 0.0);
+    pushMatrix();
+    mdlMatrix.scale(0.04, 0.04, 0.04);
+    drawOneObject(sphere, mdlMatrix, 1.0, 1.0, 0.0);
+    popMatrix();
+    mdlMatrix.rotate(angle2, -1, 1, 0);
+    mdlMatrix.rotate(x*100, -1, 1, 0);
+    mdlMatrix.rotate(y*100, -1, 1, 0);
+    pushMatrix();
+    mdlMatrix.scale(0.25, 0.05, 0.05);
+    mdlMatrix.translate(-1.4, 0.5, 0.0);
+    drawOneObject(cube, mdlMatrix, 1.0, 0.0, 0.0);
+    popMatrix();
+    popMatrix();
 
-    // mdlMatrix = new Matrix4();
-    // //sphere
-    // mdlMatrix.scale(0.1, 0.1, 0.1);
-    // drawOneObject(sphere, mdlMatrix, 1.0, 1.0, 1,0);
+    popMatrix();//FOR THE CUSTOM OBJECT
+
     
 }
 
@@ -408,7 +439,9 @@ function drawOneObject(obj, mdlMatrix, colorR, colorG, colorB){
     normalMatrix.setInverseOf(modelMatrix);
     normalMatrix.transpose();
 
-    gl.uniform3f(program.u_LightPosition, 0, 5, 3);
+    var lightpoint = [0, 5, 3];
+    
+    gl.uniform3f(program.u_LightPosition, lightpoint[0], lightpoint[1], lightpoint[2]);
     gl.uniform3f(program.u_ViewPosition, cameraX, cameraY, cameraZ);
     gl.uniform1f(program.u_Ka, 0.2);
     gl.uniform1f(program.u_Kd, 0.7);
