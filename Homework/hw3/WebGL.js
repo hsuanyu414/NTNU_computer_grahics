@@ -186,7 +186,7 @@ var lightMatrix;
 var normalMatrix;
 var nVertex;
 var cameraX = 3, cameraY = 3, cameraZ = 7;
-var steve = [];
+var battleship = [];
 var fox = [];
 var cube = [];
 var pyramid = [];
@@ -225,8 +225,8 @@ async function main(){
     program.u_shininess = gl.getUniformLocation(program, 'u_shininess');
     program.u_Color = gl.getUniformLocation(program, 'u_Color'); 
 
-    /////3D model steve
-    response = await fetch('steve.obj');
+    /////3D model battleship
+    response = await fetch('battleship.obj');
     text = await response.text();
     obj = parseOBJ(text);
     for( let i=0; i < obj.geometries.length; i ++ ){
@@ -234,7 +234,7 @@ async function main(){
                                           obj.geometries[i].data.position,
                                           obj.geometries[i].data.normal, 
                                           obj.geometries[i].data.texcoord);
-      steve.push(o);
+      battleship.push(o);
     }
 
     /////3D model fox
@@ -351,12 +351,12 @@ function draw(){
     popMatrix();
 
     pushMatrix();
-    //steve
-    //TODO-2: set mdlMatrix for steve
-    mdlMatrix.scale(0.1, 0.1, 0.1);
-    mdlMatrix.translate(-10.0, -0.2, -10.0);
-    mdlMatrix.rotate(90, 0, 1, 0);
-    drawOneObject(steve, mdlMatrix, 0.4, 1.0, 0.4);
+    //battleship
+    //TODO-2: set mdlMatrix for battleship
+    mdlMatrix.scale(0.5, 0.5, 0.5);
+    mdlMatrix.translate(-2.5, 0.5, -2.3);
+    mdlMatrix.rotate(270, 0, 1, 0);
+    drawOneObject(battleship, mdlMatrix, 0.4, 0.5, 0.4);
     popMatrix();
 
     pushMatrix();
@@ -364,7 +364,7 @@ function draw(){
     //TODO-3: set mdlMatrix for fox (include rotation and movement)
     mdlMatrix.scale(0.01, 0.01, 0.01);
     mdlMatrix.translate(100.0, 10.0, -100.0);
-    drawOneObject(fox, mdlMatrix, 0.4, 0.4, 1.0);
+    drawOneObject(fox, mdlMatrix, 0.9, 0.9, 0.4);
     popMatrix();
 
     //============================== THE CUSTOM OBJECT ==============================
@@ -379,7 +379,7 @@ function draw(){
     pushMatrix();
     //pyramid
     mdlMatrix.scale(0.03, 0.04, 0.03);
-    drawOneObject(pyramid, mdlMatrix, 1.0, 1.0, 1,0);
+    drawOneObject(pyramid, mdlMatrix, 1.0, 0.7, 1,0);
     popMatrix();
 
     pushMatrix();
@@ -388,15 +388,15 @@ function draw(){
     // mdlMatrix.rotate(x*100, 1, 0, 0);
     // mdlMatrix.rotate(y*100, 1, 0, 0);
     // mdlMatrix.rotate(angle2, 1, 0, 0);
-    mdlMatrix.translate(0.0, 1.0, 0.0);
-    drawOneObject(cube, mdlMatrix, 0.0, 1.0, 1.0);
+    mdlMatrix.translate(0.0, 0.8, 0.0);
+    drawOneObject(cube, mdlMatrix, 0.2, 0.6, 0.8);
     popMatrix();
 
     pushMatrix();
     mdlMatrix.translate(0.2, 0.5, 0.0);
     pushMatrix();
     mdlMatrix.scale(0.04, 0.04, 0.04);
-    drawOneObject(sphere, mdlMatrix, 1.0, 1.0, 0.0);
+    drawOneObject(sphere, mdlMatrix, 0.5, 1.0, 0.8);
     popMatrix();
     mdlMatrix.rotate(angle2, 1, 1, 0);
     mdlMatrix.rotate(x*100, 1, 1, 0);
@@ -404,7 +404,7 @@ function draw(){
     pushMatrix();
     mdlMatrix.scale(0.25, 0.05, 0.05);
     mdlMatrix.translate(1.4, 0.5, 0.0);
-    drawOneObject(cube, mdlMatrix, 1.0, 0.0, 0.0);
+    drawOneObject(cube, mdlMatrix, 0.9, 0.5, 0.6);
     popMatrix();
     popMatrix();
 
@@ -412,7 +412,7 @@ function draw(){
     mdlMatrix.translate(-0.2, 0.5, 0.0);
     pushMatrix();
     mdlMatrix.scale(0.04, 0.04, 0.04);
-    drawOneObject(sphere, mdlMatrix, 1.0, 1.0, 0.0);
+    drawOneObject(sphere, mdlMatrix, 0.5, 1.0, 0.8);
     popMatrix();
     mdlMatrix.rotate(angle2, -1, 1, 0);
     mdlMatrix.rotate(x*100, -1, 1, 0);
@@ -420,7 +420,7 @@ function draw(){
     pushMatrix();
     mdlMatrix.scale(0.25, 0.05, 0.05);
     mdlMatrix.translate(-1.4, 0.5, 0.0);
-    drawOneObject(cube, mdlMatrix, 1.0, 0.0, 0.0);
+    drawOneObject(cube, mdlMatrix, 0.9, 0.5, 0.6);
     popMatrix();
     popMatrix();
 
