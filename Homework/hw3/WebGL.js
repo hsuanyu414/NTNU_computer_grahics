@@ -1,21 +1,25 @@
 var VSHADER_SOURCE = `
     attribute vec4 a_Position;
+    uniform vec4 light_Position;
     attribute vec4 a_Normal;
     uniform mat4 u_MvpMatrix;
     uniform mat4 u_modelMatrix;
     uniform mat4 u_normalMatrix;
+    uniform mat4 u_lightMatrix;
     varying vec3 v_Normal;
     varying vec3 v_PositionInWorld;
+    varying vec3 u_LightPosition;
     void main(){
         gl_Position = u_MvpMatrix * a_Position;
         v_PositionInWorld = (u_modelMatrix * a_Position).xyz; 
+        u_LightPosition = (u_lightMatrix * light_Position).xyz;
         v_Normal = normalize(vec3(u_normalMatrix * a_Normal));
     }    
 `;
 
 var FSHADER_SOURCE = `
     precision mediump float;
-    uniform vec3 u_LightPosition;
+    varying vec3 u_LightPosition;
     uniform vec3 u_ViewPosition;
     uniform float u_Ka;
     uniform float u_Kd;
@@ -178,6 +182,7 @@ var angleX = 0, angleY = 0;
 var gl, canvas;
 var mvpMatrix;
 var modelMatrix;
+var lightMatrix;
 var normalMatrix;
 var nVertex;
 var cameraX = 3, cameraY = 3, cameraZ = 7;
@@ -206,10 +211,12 @@ async function main(){
     gl.useProgram(program);
 
     program.a_Position = gl.getAttribLocation(program, 'a_Position'); 
+    program.light_Position = gl.getUniformLocation(program, 'light_Position');
     program.a_Normal = gl.getAttribLocation(program, 'a_Normal'); 
     program.u_MvpMatrix = gl.getUniformLocation(program, 'u_MvpMatrix'); 
     program.u_modelMatrix = gl.getUniformLocation(program, 'u_modelMatrix'); 
     program.u_normalMatrix = gl.getUniformLocation(program, 'u_normalMatrix');
+    program.u_lightMatrix = gl.getUniformLocation(program, 'u_lightMatrix');
     program.u_LightPosition = gl.getUniformLocation(program, 'u_LightPosition');
     program.u_ViewPosition = gl.getUniformLocation(program, 'u_ViewPosition');
     program.u_Ka = gl.getUniformLocation(program, 'u_Ka'); 
@@ -281,6 +288,7 @@ async function main(){
 
     mvpMatrix = new Matrix4();
     modelMatrix = new Matrix4();
+    lightMatrix = new Matrix4();
     normalMatrix = new Matrix4();
 
     gl.enable(gl.DEPTH_TEST);
@@ -331,7 +339,7 @@ function draw(){
     pushMatrix();
     //cube (light)
     mdlMatrix.translate(0, 5, 3);
-    mdlMatrix.scale(0.1 , 0.1 , 0.1 );
+    mdlMatrix.scale(0.05 , 0.05 , 0.05 );
     drawOneObject(cube, mdlMatrix, 1.0, 1.0, 1.0);
     popMatrix(); 
 
@@ -439,9 +447,11 @@ function drawOneObject(obj, mdlMatrix, colorR, colorG, colorB){
     normalMatrix.setInverseOf(modelMatrix);
     normalMatrix.transpose();
 
-    var lightpoint = [0, 5, 3];
+    lightMatrix.setRotate(angleY, 1, 0, 0);//for mouse rotation
+    lightMatrix.rotate(angleX, 0, 1, 0);//for mouse rotation
+    // lightMatrix.translate(0, 5, 3);
     
-    gl.uniform3f(program.u_LightPosition, lightpoint[0], lightpoint[1], lightpoint[2]);
+    gl.uniform4f(program.light_Position, 0, 5, 3, 1);
     gl.uniform3f(program.u_ViewPosition, cameraX, cameraY, cameraZ);
     gl.uniform1f(program.u_Ka, 0.2);
     gl.uniform1f(program.u_Kd, 0.7);
@@ -453,41 +463,7 @@ function drawOneObject(obj, mdlMatrix, colorR, colorG, colorB){
     gl.uniformMatrix4fv(program.u_MvpMatrix, false, mvpMatrix.elements);
     gl.uniformMatrix4fv(program.u_modelMatrix, false, modelMatrix.elements);
     gl.uniformMatrix4fv(program.u_normalMatrix, false, normalMatrix.elements);
-
-    for( let i=0; i < obj.length; i ++ ){
-      initAttributeVariable(gl, program.a_Position, obj[i].vertexBuffer);
-      initAttributeVariable(gl, program.a_Normal, obj[i].normalBuffer);
-      gl.drawArrays(gl.TRIANGLES, 0, obj[i].numVertices);
-    }
-}
-
-function drawOneStaticObject(obj, mdlMatrix, colorR, colorG, colorB){
-    //model Matrix (part of the mvp matrix)
-    modelMatrix.setRotate(0, 1, 0, 0);//for mouse rotation
-    modelMatrix.rotate(0, 0, 1, 0);//for mouse rotation
-    modelMatrix.multiply(mdlMatrix);
-    //mvp: projection * view * model matrix  
-    mvpMatrix.setPerspective(30, 1, 1, 100);
-
-    mvpMatrix.lookAt(cameraX-zoomDistance*3, cameraY-zoomDistance*3, cameraZ-zoomDistance*7, 0, 0, 0, 0, 1, 0);
-    mvpMatrix.multiply(modelMatrix);
-
-    //normal matrix
-    normalMatrix.setInverseOf(modelMatrix);
-    normalMatrix.transpose();
-
-    gl.uniform3f(program.u_LightPosition, 0, 5, 3);
-    gl.uniform3f(program.u_ViewPosition, cameraX, cameraY, cameraZ);
-    gl.uniform1f(program.u_Ka, 0.2);
-    gl.uniform1f(program.u_Kd, 0.7);
-    gl.uniform1f(program.u_Ks, 1.0);
-    gl.uniform1f(program.u_shininess, 10.0);
-    gl.uniform3f(program.u_Color, colorR, colorG, colorB);
-
-
-    gl.uniformMatrix4fv(program.u_MvpMatrix, false, mvpMatrix.elements);
-    gl.uniformMatrix4fv(program.u_modelMatrix, false, modelMatrix.elements);
-    gl.uniformMatrix4fv(program.u_normalMatrix, false, normalMatrix.elements);
+    gl.uniformMatrix4fv(program.u_lightMatrix, false, lightMatrix.elements);
 
     for( let i=0; i < obj.length; i ++ ){
       initAttributeVariable(gl, program.a_Position, obj[i].vertexBuffer);
