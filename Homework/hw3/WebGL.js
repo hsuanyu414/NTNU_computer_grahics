@@ -217,7 +217,7 @@ async function main(){
     program.u_modelMatrix = gl.getUniformLocation(program, 'u_modelMatrix'); 
     program.u_normalMatrix = gl.getUniformLocation(program, 'u_normalMatrix');
     program.u_lightMatrix = gl.getUniformLocation(program, 'u_lightMatrix');
-    program.u_LightPosition = gl.getUniformLocation(program, 'u_LightPosition');
+    // program.u_LightPosition = gl.getUniformLocation(program, 'u_LightPosition');
     program.u_ViewPosition = gl.getUniformLocation(program, 'u_ViewPosition');
     program.u_Ka = gl.getUniformLocation(program, 'u_Ka'); 
     program.u_Kd = gl.getUniformLocation(program, 'u_Kd');
@@ -452,7 +452,7 @@ function drawOneObject(obj, mdlMatrix, colorR, colorG, colorB){
     // lightMatrix.translate(0, 5, 3);
     
     gl.uniform4f(program.light_Position, 0, 5, 3, 1);
-    gl.uniform3f(program.u_ViewPosition, cameraX, cameraY, cameraZ);
+    gl.uniform3f(program.u_ViewPosition, cameraX-zoomDistance*3, cameraY-zoomDistance*3, cameraZ-zoomDistance*7);
     gl.uniform1f(program.u_Ka, 0.2);
     gl.uniform1f(program.u_Kd, 0.7);
     gl.uniform1f(program.u_Ks, 1.0);
