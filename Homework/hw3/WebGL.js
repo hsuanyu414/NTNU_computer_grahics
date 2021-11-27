@@ -338,8 +338,8 @@ function draw(){
 
     pushMatrix();
     //cube (light)
-    mdlMatrix.translate(0, 5, 3);
-    mdlMatrix.scale(0.05 , 0.05 , 0.05 );
+    mdlMatrix.translate(1.2, 5, 3);
+    mdlMatrix.scale(0.1 , 0.1 , 0.1 );
     drawOneObject(cube, mdlMatrix, 1.0, 1.0, 1.0);
     popMatrix(); 
 
@@ -449,9 +449,9 @@ function drawOneObject(obj, mdlMatrix, colorR, colorG, colorB){
 
     lightMatrix.setRotate(angleY, 1, 0, 0);//for mouse rotation
     lightMatrix.rotate(angleX, 0, 1, 0);//for mouse rotation
-    // lightMatrix.translate(0, 5, 3);
+    // lightMatrix.scale(0.1, 0.1, 0.1);
     
-    gl.uniform4f(program.light_Position, 0, 5, 3, 1);
+    gl.uniform4f(program.light_Position, 1, 5, 3, 1);
     gl.uniform3f(program.u_ViewPosition, cameraX-zoomDistance*3, cameraY-zoomDistance*3, cameraZ-zoomDistance*7);
     gl.uniform1f(program.u_Ka, 0.2);
     gl.uniform1f(program.u_Kd, 0.7);
