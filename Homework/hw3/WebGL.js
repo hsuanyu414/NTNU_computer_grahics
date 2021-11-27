@@ -1,25 +1,22 @@
 var VSHADER_SOURCE = `
     attribute vec4 a_Position;
-    uniform vec4 light_Position;
     attribute vec4 a_Normal;
     uniform mat4 u_MvpMatrix;
     uniform mat4 u_modelMatrix;
     uniform mat4 u_normalMatrix;
-    uniform mat4 u_lightMatrix;
     varying vec3 v_Normal;
     varying vec3 v_PositionInWorld;
-    varying vec3 u_LightPosition;
     void main(){
         gl_Position = u_MvpMatrix * a_Position;
         v_PositionInWorld = (u_modelMatrix * a_Position).xyz; 
-        u_LightPosition = (u_lightMatrix * light_Position).xyz;
         v_Normal = normalize(vec3(u_normalMatrix * a_Normal));
     }    
 `;
 
 var FSHADER_SOURCE = `
     precision mediump float;
-    varying vec3 u_LightPosition;
+    uniform mat4 u_lightMatrix;
+    uniform vec4 u_LightPosition;
     uniform vec3 u_ViewPosition;
     uniform float u_Ka;
     uniform float u_Kd;
@@ -39,7 +36,8 @@ var FSHADER_SOURCE = `
         vec3 ambient = ambientLightColor * u_Ka;
 
         vec3 normal = normalize(v_Normal);
-        vec3 lightDirection = normalize(u_LightPosition - v_PositionInWorld);
+        vec3 v_LightPosition = (u_lightMatrix * u_LightPosition).xyz;
+        vec3 lightDirection = normalize(v_LightPosition - v_PositionInWorld);
         float nDotL = max(dot(lightDirection, normal), 0.0);
         vec3 diffuse = diffuseLightColor * u_Kd * nDotL;
 
@@ -211,13 +209,12 @@ async function main(){
     gl.useProgram(program);
 
     program.a_Position = gl.getAttribLocation(program, 'a_Position'); 
-    program.light_Position = gl.getUniformLocation(program, 'light_Position');
     program.a_Normal = gl.getAttribLocation(program, 'a_Normal'); 
     program.u_MvpMatrix = gl.getUniformLocation(program, 'u_MvpMatrix'); 
     program.u_modelMatrix = gl.getUniformLocation(program, 'u_modelMatrix'); 
     program.u_normalMatrix = gl.getUniformLocation(program, 'u_normalMatrix');
     program.u_lightMatrix = gl.getUniformLocation(program, 'u_lightMatrix');
-    // program.u_LightPosition = gl.getUniformLocation(program, 'u_LightPosition');
+    program.u_LightPosition = gl.getUniformLocation(program, 'u_LightPosition');
     program.u_ViewPosition = gl.getUniformLocation(program, 'u_ViewPosition');
     program.u_Ka = gl.getUniformLocation(program, 'u_Ka'); 
     program.u_Kd = gl.getUniformLocation(program, 'u_Kd');
@@ -275,12 +272,12 @@ async function main(){
     //TODO-1: create vertices for the cube whose edge length is 2.0 (or 1.0 is also fine)
     //F: Face, T: Triangle
     cubeVertices = [
-      1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, //this row for the face z = 1.0
-      1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0, //this row for the face x = 1.0
-      1.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, //this row for the face y = 1.0
-      -1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, //this row for the face x = -1.0
-      -1.0, -1.0, 1.0, -1.0, -1.0, -1.0, 1.0, -1.0, -1.0,  1.0, -1.0, -1.0, 1.0, -1.0, 1.0, -1.0, -1.0, 1.0, //this row for the face y = -1.0
-      1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0 //this row for the face z = -1.0
+       1.0, 1.0, 1.0,-1.0, 1.0, 1.0, 1.0,-1.0, 1.0,-1.0,-1.0, 1.0, 1.0,-1.0, 1.0,-1.0, 1.0, 1.0,     //this row for the face z = 1.0.0
+       1.0, 1.0, 1.0, 1.0,-1.0, 1.0, 1.0, 1.0,-1.0, 1.0,-1.0,-1.0, 1.0, 1.0,-1.0, 1.0,-1.0, 1.0,     //this row for the face x = 1.0.0
+       1.0, 1.0, 1.0, 1.0, 1.0,-1.0,-1.0, 1.0, 1.0,-1.0, 1.0,-1.0,-1.0, 1.0, 1.0, 1.0, 1.0,-1.0,       //this row for the face y = 1.0.0
+      -1.0, 1.0, 1.0,-1.0, 1.0,-1.0,-1.0,-1.0, 1.0,-1.0,-1.0,-1.0,-1.0,-1.0, 1.0,-1.0, 1.0,-1.0,       //this row for the face x = -1.0.0
+       1.0,-1.0, 1.0,-1.0,-1.0, 1.0, 1.0,-1.0,-1.0,-1.0,-1.0,-1.0, 1.0,-1.0,-1.0,-1.0,-1.0, 1.0,           //this row for the face y = -1.0.0
+       1.0, 1.0,-1.0, 1.0,-1.0,-1.0,-1.0, 1.0,-1.0,-1.0,-1.0,-1.0,-1.0, 1.0,-1.0, 1.0,-1.0,-1.0   //this row for the face z = -1.0.0
     ];
     cubeNormals = getNormalOnVertices(cubeVertices);
     let o = initVertexBufferForLaterUse(gl, cubeVertices, cubeNormals, null);
@@ -338,9 +335,9 @@ function draw(){
 
     pushMatrix();
     //cube (light)
-    mdlMatrix.translate(1.2, 5, 3);
-    mdlMatrix.scale(0.1 , 0.1 , 0.1 );
-    drawOneObject(cube, mdlMatrix, 1.0, 1.0, 1.0);
+    mdlMatrix.translate(0, 5, 3);
+    mdlMatrix.scale(0.2 , 0.2 , 0.2 );
+    drawOneObject(cube, mdlMatrix, 0.0, 1.0, 0.0);
     popMatrix(); 
 
     pushMatrix();
@@ -451,8 +448,8 @@ function drawOneObject(obj, mdlMatrix, colorR, colorG, colorB){
     lightMatrix.rotate(angleX, 0, 1, 0);//for mouse rotation
     // lightMatrix.scale(0.1, 0.1, 0.1);
     
-    gl.uniform4f(program.light_Position, 1, 5, 3, 1);
-    gl.uniform3f(program.u_ViewPosition, cameraX-zoomDistance*3, cameraY-zoomDistance*3, cameraZ-zoomDistance*7);
+    gl.uniform4f(program.u_LightPosition, 0, 5, 3, 1);
+    gl.uniform3f(program.u_ViewPosition, cameraX, cameraY, cameraZ);
     gl.uniform1f(program.u_Ka, 0.2);
     gl.uniform1f(program.u_Kd, 0.7);
     gl.uniform1f(program.u_Ks, 1.0);
