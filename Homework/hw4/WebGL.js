@@ -428,7 +428,11 @@ function draw(){
     mdlMatrix.translate(-2.5, 0.5, -2.3);
     mdlMatrix.rotate(270, 0, 1, 0);
 <<<<<<< HEAD
+<<<<<<< HEAD
     drawOneObject(battleshipComponents, mdlMatrix, 0.4, 0.5, 0.4, newViewDir);
+=======
+    drawOneObject(battleship, mdlMatrix, 0.4, 0.5, 0.4, newViewDir);
+>>>>>>> parent of ac31a6d (hw4 merging in process)
 =======
     drawOneObject(battleship, mdlMatrix, 0.4, 0.5, 0.4, newViewDir);
 >>>>>>> parent of ac31a6d (hw4 merging in process)
