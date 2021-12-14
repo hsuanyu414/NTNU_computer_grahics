@@ -460,7 +460,7 @@ function draw(screen_mode){
     mdlMatrix.scale(0.5, 0.5, 0.5);
     mdlMatrix.translate(-2.5, 0.5, -2.3);
     mdlMatrix.rotate(270, 0, 1, 0);
-    // drawOneObject(battleship, mdlMatrix, 0.4, 0.5, 0.4, newViewDir);
+    drawOneObject(battleshipComponents, mdlMatrix, 0.4, 0.5, 0.4, newViewDir);
     popMatrix();
     pushMatrix();
     //fox
