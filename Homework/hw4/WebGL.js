@@ -257,18 +257,19 @@ var mouseLastX, mouseLastY;
 var mouseDragging = false;
 var angleX = 180, angleY = 0;
 var gl, canvas;
+var offScreenWidth = 800, offScreenHeight = 800
 var mvpMatrix;
 var modelMatrix;
 var lightMatrix;
 var normalMatrix;
 var nVertex;
-var battleship = [];
-var battleship_texture = {};
+var battleshipComponents = [];
+var battleship_textures = {};
 var battleship_imgname = ["./battleship/battleship_texture.png"];
 var btexCount = 0 ;
 var bnumTextures = battleship_imgname.length;
-var fox = [];
-var fox_texture = {};
+var foxComponents = [];
+var fox_textures = {};
 var fox_imgname = ["./fox/fox_texture.png"];
 var ftexCount = 0 ;
 var fnumTextures = fox_imgname.length;
@@ -278,7 +279,9 @@ var cameraDirX = 0, cameraDirY = 0, cameraDirZ = 1;
 var cube = [];
 var cubeObj = [];
 var quadObj;
+var fbo;
 var cubeMaxTex;
+var newViewDir;
 
 async function main(){
     canvas = document.getElementById('webgl');
@@ -297,6 +300,22 @@ async function main(){
          1, -1, 1,
          1,  1, 1
       ]); //just a quad
+
+    program = compileShader(gl, VSHADER_SOURCE, FSHADER_SOURCE);
+    gl.useProgram(program);
+    program.a_Position = gl.getAttribLocation(program, 'a_Position'); 
+    program.a_Normal = gl.getAttribLocation(program, 'a_Normal'); 
+    program.u_MvpMatrix = gl.getUniformLocation(program, 'u_MvpMatrix'); 
+    program.u_modelMatrix = gl.getUniformLocation(program, 'u_modelMatrix'); 
+    program.u_normalMatrix = gl.getUniformLocation(program, 'u_normalMatrix');
+    program.u_lightMatrix = gl.getUniformLocation(program, 'u_lightMatrix');
+    program.u_LightPosition = gl.getUniformLocation(program, 'u_LightPosition');
+    program.u_ViewPosition = gl.getUniformLocation(program, 'u_ViewPosition');
+    program.u_Ka = gl.getUniformLocation(program, 'u_Ka'); 
+    program.u_Kd = gl.getUniformLocation(program, 'u_Kd');
+    program.u_Ks = gl.getUniformLocation(program, 'u_Ks');
+    program.u_shininess = gl.getUniformLocation(program, 'u_shininess');
+    program.u_Color = gl.getUniformLocation(program, 'u_Color'); 
 
     programEnvCube = compileShader(gl, VSHADER_SOURCE_ENVCUBE, FSHADER_SOURCE_ENVCUBE);
     programEnvCube.a_Position = gl.getAttribLocation(programEnvCube, 'a_Position'); 
@@ -321,22 +340,6 @@ async function main(){
     programTexture.u_shininess = gl.getUniformLocation(programTexture, 'u_shininess');
     programTexture.u_Sampler = gl.getUniformLocation(programTexture, "u_Sampler")
 
-    program = compileShader(gl, VSHADER_SOURCE, FSHADER_SOURCE);
-    gl.useProgram(program);
-    program.a_Position = gl.getAttribLocation(program, 'a_Position'); 
-    program.a_Normal = gl.getAttribLocation(program, 'a_Normal'); 
-    program.u_MvpMatrix = gl.getUniformLocation(program, 'u_MvpMatrix'); 
-    program.u_modelMatrix = gl.getUniformLocation(program, 'u_modelMatrix'); 
-    program.u_normalMatrix = gl.getUniformLocation(program, 'u_normalMatrix');
-    program.u_lightMatrix = gl.getUniformLocation(program, 'u_lightMatrix');
-    program.u_LightPosition = gl.getUniformLocation(program, 'u_LightPosition');
-    program.u_ViewPosition = gl.getUniformLocation(program, 'u_ViewPosition');
-    program.u_Ka = gl.getUniformLocation(program, 'u_Ka'); 
-    program.u_Kd = gl.getUniformLocation(program, 'u_Kd');
-    program.u_Ks = gl.getUniformLocation(program, 'u_Ks');
-    program.u_shininess = gl.getUniformLocation(program, 'u_shininess');
-    program.u_Color = gl.getUniformLocation(program, 'u_Color'); 
-
     /////3D model battleship
     response = await fetch('battleship/battleship.obj');
     text = await response.text();
@@ -346,7 +349,13 @@ async function main(){
                                           obj.geometries[i].data.position,
                                           obj.geometries[i].data.normal, 
                                           obj.geometries[i].data.texcoord);
-      battleship.push(o);
+      battleshipComponents.push(o);
+    }
+    for( let i=0; i < battleship_imgname.length; i ++ ){
+      let image = new Image();
+      image.onload = function(){initTexture(gl, image, 
+        battleship_imgname[i], battleship_textures);};
+      image.src = battleship_imgname[i];
     }
 
     /////3D model fox
@@ -358,8 +367,15 @@ async function main(){
                                           obj.geometries[i].data.position,
                                           obj.geometries[i].data.normal, 
                                           obj.geometries[i].data.texcoord);
-      fox.push(o);
+      foxComponents.push(o);
     }
+    for( let i=0; i < fox_imgname.length; i ++ ){
+      let image = new Image();
+      image.onload = function(){initTexture(gl, image,
+       fox_imgname[i], fox_textures);};
+      image.src = fox_imgname[i];
+    }
+
     ////cube
     //TODO-1: create vertices for the cube whose edge length is 2.0 (or 1.0 is also fine)
     //F: Face, T: Triangle
@@ -382,7 +398,9 @@ async function main(){
 
     gl.enable(gl.DEPTH_TEST);
 
-    draw();//draw it once before mouse move
+    fbo = initFrameBuffer(gl)
+
+    drawAll();//draw it once before mouse move
 
     canvas.onmousedown = function(ev){mouseDown(ev)};
     canvas.onmousemove = function(ev){mouseMove(ev)};
@@ -390,9 +408,24 @@ async function main(){
     document.onkeydown = function(ev){keydown(ev)};
 }
 
+function drawAll(){
+    draw(0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.viewport(0, 0, offScreenWidth, offScreenHeight);
+    var originX = cameraX, originY = cameraY, originZ = cameraZ;
+    var originAngelX = angleX, originAngleY = angleY;
+    cameraX = 0 , cameraY = 3 , cameraZ = 5
+    draw(1)
+    cameraX = originX, cameraY = originY, cameraZ = originZ;
+    angleX = originAngelX, angleY = originAngleY;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    drawOnScreen();
+}
+
 /////Call drawOneObject() here to draw all object one by one 
 ////   (setup the model matrix and color to draw)
-function draw(){
+function draw(screen_mode){
     gl.viewport(0, 0, canvas.width, canvas.height)
     gl.clearColor(0,0,0,1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -404,7 +437,7 @@ function draw(){
     rotateMatrix.setRotate(angleY, 1, 0, 0);//for mouse rotation
     rotateMatrix.rotate(angleX, 0, 1, 0);//for mouse rotation
     var viewDir= new Vector3([cameraDirX, cameraDirY, cameraDirZ]);
-    var newViewDir = rotateMatrix.multiplyVector3(viewDir);
+    newViewDir = rotateMatrix.multiplyVector3(viewDir);
     //===================ROTATE===================
     
     gl.useProgram(program);
@@ -427,27 +460,31 @@ function draw(){
     mdlMatrix.scale(0.5, 0.5, 0.5);
     mdlMatrix.translate(-2.5, 0.5, -2.3);
     mdlMatrix.rotate(270, 0, 1, 0);
-    drawOneObject(battleship, mdlMatrix, 0.4, 0.5, 0.4, newViewDir);
+    // drawOneObject(battleship, mdlMatrix, 0.4, 0.5, 0.4, newViewDir);
     popMatrix();
     pushMatrix();
     //fox
     //TODO-3: set mdlMatrix for fox (include rotation and movement)
     mdlMatrix.scale(0.01, 0.01, 0.01);
     mdlMatrix.translate(100.0, 10.0, -100.0);
-    drawOneObject(fox, mdlMatrix, 0.9, 0.9, 0.4, newViewDir);
+    // drawOneObject(fox, mdlMatrix, 0.9, 0.9, 0.4, newViewDir);
     popMatrix();
 
-    
 
   
     var vpFromCamera = new Matrix4();
     vpFromCamera.setPerspective(60, 1, 1, 15);
     var viewMatrixRotationOnly = new Matrix4();
-    viewMatrixRotationOnly.lookAt(cameraX, cameraY, cameraZ, 
+    if(screen_mode){
+        viewMatrixRotationOnly.lookAt(cameraX, cameraY, cameraZ, 0, 0, 0, 0, 1, 0);
+    }
+    else{
+        viewMatrixRotationOnly.lookAt(cameraX, cameraY, cameraZ, 
                                   cameraX + newViewDir.elements[0], 
                                   cameraY + newViewDir.elements[1], 
                                   cameraZ + newViewDir.elements[2], 
                                   0, 1, 0);
+    }
     viewMatrixRotationOnly.elements[12] = 0; //ignore translation
     viewMatrixRotationOnly.elements[13] = 0;
     viewMatrixRotationOnly.elements[14] = 0;
@@ -521,46 +558,6 @@ function drawOneObject(obj, mdlMatrix, colorR, colorG, colorB, newViewDir){
       initAttributeVariable(gl, program.a_Normal, obj[i].normalBuffer);
       gl.drawArrays(gl.TRIANGLES, 0, obj[i].numVertices);
     }
-}
-
-function drawOneTextureObject(obj, mdlMatrix, colorR, colorG, colorB, newViewDir){
-  //model Matrix (part of the mvp matrix)
-  modelMatrix.setRotate(0, 1, 0, 0);//for mouse rotation
-  modelMatrix.multiply(mdlMatrix);
-  //mvp: projection * view * model matrix  
-  mvpMatrix.setPerspective(60, 1, 1, 15);
-
-  mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 
-    cameraX + newViewDir.elements[0], 
-    cameraY + newViewDir.elements[1], 
-    cameraZ + newViewDir.elements[2],
-    0, 1, 0);
-  mvpMatrix.multiply(modelMatrix);
-
-  //normal matrix
-  normalMatrix.setInverseOf(modelMatrix);
-  normalMatrix.transpose();
-
-  lightMatrix.setRotate(0, 1, 0, 0);//for mouse rotation
-  // lightMatrix.scale(0.1, 0.1, 0.1);
-  
-  gl.uniform4f(program.u_LightPosition, 0, 5, 3, 1);
-  gl.uniform3f(program.u_ViewPosition, cameraX, cameraY, cameraZ);
-  gl.uniform1f(program.u_Ka, 0.2);
-  gl.uniform1f(program.u_Kd, 0.7);
-  gl.uniform1f(program.u_Ks, 1.0);
-  gl.uniform1f(program.u_shininess, 10.0);
-
-  gl.uniformMatrix4fv(program.u_MvpMatrix, false, mvpMatrix.elements);
-  gl.uniformMatrix4fv(program.u_modelMatrix, false, modelMatrix.elements);
-  gl.uniformMatrix4fv(program.u_normalMatrix, false, normalMatrix.elements);
-  gl.uniformMatrix4fv(program.u_lightMatrix, false, lightMatrix.elements);
-
-  for( let i=0; i < obj.length; i ++ ){
-    initAttributeVariable(gl, program.a_Position, obj[i].vertexBuffer);
-    initAttributeVariable(gl, program.a_Normal, obj[i].normalBuffer);
-    gl.drawArrays(gl.TRIANGLES, 0, obj[i].numVertices);
-  }
 }
 
 function parseOBJ(text) {
@@ -813,20 +810,66 @@ function keydown(ev){
   }
 
   console.log(cameraX, cameraY, cameraZ)
-  draw();
+  drawAll();
 }
 
-function initTexture(gl, img, imgName){
+function drawOnScreen(){
+    // gl.clearColor(0,0,0,1);
+
+    //model Matrix (part of the mvp matrix)
+    modelMatrix.setRotate(0, 1, 0, 0);//for mouse rotation
+    modelMatrix.scale(1.0, 1.0, 0.05);
+    modelMatrix.translate(0, 0.5, 0);
+    //mvp: projection * view * model matrix  
+    mvpMatrix.setPerspective(60, 1, 1, 15);
+    mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 
+        cameraX + newViewDir.elements[0], 
+        cameraY + newViewDir.elements[1], 
+        cameraZ + newViewDir.elements[2]
+        , 0, 1, 0);
+    mvpMatrix.multiply(modelMatrix);
+
+    //normal matrix
+    normalMatrix.setInverseOf(modelMatrix);
+    normalMatrix.transpose();
+
+    gl.useProgram(programTexture);
+    gl.uniform3f(programTexture.u_LightPosition, 0, 0, 3);
+    gl.uniform3f(programTexture.u_ViewPosition, cameraX, cameraY, cameraZ);
+    gl.uniform1f(programTexture.u_Ka, 0.2);
+    gl.uniform1f(programTexture.u_Kd, 0.7);
+    gl.uniform1f(programTexture.u_Ks, 1.0);
+    gl.uniform1f(programTexture.u_shininess, 10.0);
+    gl.uniform1i(programTexture.u_Sampler0, 0);
+
+    gl.uniformMatrix4fv(programTexture.u_MvpMatrix, false, mvpMatrix.elements);
+    gl.uniformMatrix4fv(programTexture.u_modelMatrix, false, modelMatrix.elements);
+    gl.uniformMatrix4fv(programTexture.u_normalMatrix, false, normalMatrix.elements);
+
+    // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, fbo.texture);
+
+    for( let i=0; i < cubeObj.length; i ++ ){
+      initAttributeVariable(gl, programTexture.a_Position, cubeObj[i].vertexBuffer);
+      initAttributeVariable(gl, programTexture.a_TexCoord, cubeObj[i].texCoordBuffer);
+      initAttributeVariable(gl, programTexture.a_Normal, cubeObj[i].normalBuffer);
+      gl.drawArrays(gl.TRIANGLES, 0, cubeObj[i].numVertices);
+    }
+}
+
+function initTexture(gl, img, imgName, textures, texCount, numTextures){
   var tex = gl.createTexture();
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
   gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
 
   // Set the parameters so we can render any size image.
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 
   // Upload the image into the texture.
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
@@ -834,5 +877,31 @@ function initTexture(gl, img, imgName){
   textures[imgName] = tex;
 
   texCount++;
-  if( texCount == numTextures)draw();
+  if( texCount == numTextures)drawAll();
+}
+
+function initFrameBuffer(gl){
+  //create and set up a texture object as the color buffer
+  var texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, offScreenWidth, offScreenHeight,
+                  0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  
+
+  //create and setup a render buffer as the depth buffer
+  var depthBuffer = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+  gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, 
+                          offScreenWidth, offScreenHeight);
+
+  //create and setup framebuffer: linke the color and depth buffer to it
+  var frameBuffer = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, 
+                            gl.TEXTURE_2D, texture, 0);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, 
+                              gl.RENDERBUFFER, depthBuffer);
+  frameBuffer.texture = texture;
+  return frameBuffer;
 }
