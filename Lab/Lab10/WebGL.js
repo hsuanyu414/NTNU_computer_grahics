@@ -197,7 +197,7 @@ async function main(){
     quadObj = initVertexBufferForLaterUse(gl, quad);
 
     cubeMapTex = initCubeTexture("pos-x.jpg", "neg-x.jpg", "pos-y.jpg", "neg-y.jpg", 
-                                      "pos-z.jpg", "neg-z.jpg", 512, 512)
+                                      "pos-z.jpg", "neg-z.jpg", 2048, 2048)
 
     program = compileShader(gl, VSHADER_SOURCE, FSHADER_SOURCE);
     gl.useProgram(program);
