@@ -278,7 +278,7 @@ var fox_objComponentIndex = ["./fox/fox_texture.png"];
 var fox_texCount = 0 ;
 var fox_numTextures = fox_imgNames.length;
 
-var cameraX = 0, cameraY = 0, cameraZ = 5;
+var cameraX = 0, cameraY = 1, cameraZ = 4;
 var cameraDirX = 0, cameraDirY = 0, cameraDirZ = 1;
 var cube = [];
 var cubeObj = [];
@@ -288,8 +288,9 @@ var numTexture = 1;
 var quadObj;
 var cubeMapTex;
 var newViewDir = new Vector3();
+var staX = 0, staY = 0, staZ = 0;//static camera look at
 
-var mode = 0  ;
+var moving_camera = 0  ;
 var fbo;
 var offScreenWidth = 800, offScreenHeight = 800;
 
@@ -378,7 +379,8 @@ async function main(){
 
     for( let i=0; i < battleship_imgNames.length; i ++ ){
       let image = new Image();
-      image.onload = function(){battleship_initTexture(gl, image, battleship_imgNames[i]);};
+      image.onload = function(){initTexture(gl, image, battleship_imgNames[i], 
+                                            battleship_textures, battleship_texCount, battleship_numTextures);};
       image.src = battleship_imgNames[i];
     }
 
@@ -396,7 +398,8 @@ async function main(){
 
     for( let i=0; i < fox_imgNames.length; i ++ ){
       let image = new Image();
-      image.onload = function(){fox_initTexture(gl, image, fox_imgNames[i]);};
+      image.onload = function(){initTexture(gl, image, fox_imgNames[i], 
+                                            fox_textures, fox_texCount, fox_numTextures);};
       image.src = fox_imgNames[i];
     }
 
@@ -448,14 +451,17 @@ async function main(){
 }
 
 function drawAll(){
-  mode = 1;
+  moving_camera = 1;
   draw();
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
   gl.viewport(0, 0, offScreenWidth, offScreenHeight);
   var oriX = cameraX, oriY = cameraY, oriZ = cameraZ;
   var oriAX = angleX, oriAY = angleY;
-  cameraX = 3, cameraY = 3, cameraZ = 3;
-  mode = 0 ;
+  cameraX = 3, cameraY = 2, cameraZ = 4;
+  //3.9027775801252584 3.8947608091053554 6.31559872031212
+  staX = 0, staY = 0, staZ = 0;
+  //-0.5807029604911804, -0.20899248123168945, -0.786
+  moving_camera = 0 ;
   draw();
   cameraX = oriX, cameraY = oriY, cameraZ = oriZ;
   angelX = oriAX, angleY = oriAY;
@@ -486,8 +492,8 @@ function draw(){
     //cube (light)
     mdlMatrix.setRotate(0, 1, 1, 1);
     mdlMatrix.translate(0, 5, 3);
-    mdlMatrix.scale(0.2 , 0.2 , 0.2 );
-    drawOneObject(cube, mdlMatrix, 0.0, 1.0, 0.0, newViewDir);
+    mdlMatrix.scale(0.1 , 0.1 , 0.1 );
+    drawOneObject(cube, mdlMatrix, 0.0, 1.0, 1.0, newViewDir);
     //Cube (ground)
     //TODO-1: set mdlMatrix for the cube
     mdlMatrix.setRotate(0, 1, 1, 1);
@@ -503,95 +509,25 @@ function draw(){
     battleship_modelMatrix.scale(battleship_objScale, battleship_objScale, battleship_objScale);
     battleship_modelMatrix.translate(-2.5, 0.2, -0.5);
     battleship_modelMatrix.rotate(270, 0, 1, 0);
-    battleship_mvpMatrix.setPerspective(60, 1, 1, 15);
-    if(mode == 0){
-      battleship_mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 0, 0, 0, 0, 1, 0);
-    }
-    else{
-      battleship_mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 
-        cameraX + newViewDir.elements[0], 
-        cameraY + newViewDir.elements[1], 
-        cameraZ + newViewDir.elements[2], 
-        0, 1, 0);
-    }
     
-    battleship_mvpMatrix.multiply(battleship_modelMatrix);
+    
+    drawOneTextureObject(battleship_modelMatrix,
+      battleship_textures, battleship_objComponents, battleship_objComponentIndex, newViewDir);
 
-    //normal matrix
-    battleship_normalMatrix.setInverseOf(battleship_modelMatrix);
-    battleship_normalMatrix.transpose();
     
-    gl.uniform3f(programTexture.u_LightPosition, 0, 5, 3);
-    // gl.uniform3f(programTexture.u_ViewPosition, cameraX, cameraY, cameraZ);
-    gl.uniform1f(programTexture.u_Ka, 0.2);
-    gl.uniform1f(programTexture.u_Kd, 0.7);
-    gl.uniform1f(programTexture.u_Ks, 1.0);
-    gl.uniform1f(programTexture.u_shininess, 10.0);
-    gl.uniformMatrix4fv(programTexture.u_MvpMatrix, false, battleship_mvpMatrix.elements);
-    gl.uniformMatrix4fv(programTexture.u_modelMatrix, false, battleship_modelMatrix.elements);
-    gl.uniformMatrix4fv(programTexture.u_normalMatrix, false, battleship_normalMatrix.elements);
-    for(let i = 0 ; i < battleship_objComponents.length ; i ++){
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, battleship_textures[battleship_objComponentIndex[i]]);
-      gl.uniform1i(programTexture.u_Sampler, 0);
-      initAttributeVariable(gl, programTexture.a_Position, battleship_objComponents[i].vertexBuffer);
-      initAttributeVariable(gl, programTexture.a_TexCoord, battleship_objComponents[i].texCoordBuffer);
-      initAttributeVariable(gl, programTexture.a_Normal, battleship_objComponents[i].normalBuffer);
-      gl.drawArrays(gl.TRIANGLES, 0, battleship_objComponents[i].numVertices);
-    }
-    
-    // //fox
-    // //TODO-3: set mdlMatrix for fox (include rotation and movement)
-    // mdlMatrix.scale(0.01, 0.01, 0.01);
-    // mdlMatrix.translate(100.0, 10.0, -100.0);
-    // drawOneObject(fox, mdlMatrix, 0.9, 0.9, 0.4, newViewDir);
-    // popMatrix();
+    //fox
     fox_modelMatrix.setRotate(0, 1, 1, 1);
     fox_modelMatrix.scale(fox_objScale, fox_objScale, fox_objScale);
     fox_modelMatrix.translate(100.0, 10.0, -20);
-    fox_mvpMatrix.setPerspective(60, 1, 1, 15);
-    if(mode == 0){
-      fox_mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 0, 0, 0, 0, 1, 0);
-    }
-    else{
-      fox_mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 
-        cameraX + newViewDir.elements[0], 
-        cameraY + newViewDir.elements[1], 
-        cameraZ + newViewDir.elements[2], 
-        0, 1, 0);
-    }
-    fox_mvpMatrix.multiply(fox_modelMatrix);
-
-    //normal matrix
-    fox_normalMatrix.setInverseOf(fox_modelMatrix);
-    fox_normalMatrix.transpose();
-    
-    gl.uniform3f(programTexture.u_LightPosition, 0, 5, 3);
-    // gl.uniform3f(programTexture.u_ViewPosition, cameraX, cameraY, cameraZ);
-    gl.uniform1f(programTexture.u_Ka, 0.2);
-    gl.uniform1f(programTexture.u_Kd, 0.7);
-    gl.uniform1f(programTexture.u_Ks, 1.0);
-    gl.uniform1f(programTexture.u_shininess, 10.0);
-    gl.uniformMatrix4fv(programTexture.u_MvpMatrix, false, fox_mvpMatrix.elements);
-    gl.uniformMatrix4fv(programTexture.u_modelMatrix, false, fox_modelMatrix.elements);
-    gl.uniformMatrix4fv(programTexture.u_normalMatrix, false, fox_normalMatrix.elements);
-    for(let i = 0 ; i < fox_objComponents.length ; i ++){
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, fox_textures[fox_objComponentIndex[i]]);
-      gl.uniform1i(programTexture.u_Sampler, 0);
-      initAttributeVariable(gl, programTexture.a_Position, fox_objComponents[i].vertexBuffer);
-      initAttributeVariable(gl, programTexture.a_TexCoord, fox_objComponents[i].texCoordBuffer);
-      initAttributeVariable(gl, programTexture.a_Normal, fox_objComponents[i].normalBuffer);
-      gl.drawArrays(gl.TRIANGLES, 0, fox_objComponents[i].numVertices);
-    }
-
+    drawOneTextureObject(fox_modelMatrix,
+      fox_textures, fox_objComponents, fox_objComponentIndex, newViewDir);
 
 
     var vpFromCamera = new Matrix4();
     vpFromCamera.setPerspective(60, 1, 1, 15);
     var viewMatrixRotationOnly = new Matrix4();
-    if(mode == 0){
-      viewMatrixRotationOnly.lookAt(cameraX, cameraY, cameraZ, 0, 0, 0, 0, 1, 0)
+    if(moving_camera == 0){
+      viewMatrixRotationOnly.lookAt(cameraX, cameraY, cameraZ, staX, staY, staZ, 0, 1, 0)
     }
     else{
       viewMatrixRotationOnly.lookAt(cameraX, cameraY, cameraZ, 
@@ -607,8 +543,8 @@ function draw(){
     var vpFromCameraInverse = vpFromCamera.invert();
     //
     mvpMatrix.setPerspective(60, 1, 1, 15);
-    if(mode == 0){
-      mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 0, 0, 0, 0, 1, 0)
+    if(moving_camera == 0){
+      mvpMatrix.lookAt(cameraX, cameraY, cameraZ, staX, staY, staZ, 0, 1, 0)
     }
     else{
       mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 
@@ -646,8 +582,8 @@ function drawOneObject(obj, mdlMatrix, colorR, colorG, colorB, newViewDir){
     //mvp: projection * view * model matrix  
     mvpMatrix.setPerspective(60, 1, 1, 15);
 
-    if(mode == 0){
-      mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 0, 0, 0, 0, 1, 0);
+    if(moving_camera == 0){
+      mvpMatrix.lookAt(cameraX, cameraY, cameraZ, staX, staY, staZ, 0, 1, 0);
     }
     else{
       mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 
@@ -939,7 +875,7 @@ function keydown(ev){
   drawAll();
 }
 
-function initTexture(gl, img, imgName){
+function initTexture(gl, img, imgName, textures, texCount, numTextures){
   var tex = gl.createTexture();
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
   gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -960,51 +896,6 @@ function initTexture(gl, img, imgName){
   if( texCount == numTextures)drawAll();
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
 } 
-
-function battleship_initTexture(gl, img, imgName){
-  var battleship_tex = gl.createTexture();
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
-  gl.bindTexture(gl.TEXTURE_2D, battleship_tex);
-
-  // Set the parameters so we can render any size image.
-  // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-  // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-
-  // Upload the image into the texture.
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-
-  battleship_textures[imgName] = battleship_tex;
-
-  battleship_texCount++;
-  if( battleship_texCount == battleship_numTextures)drawAll();
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
-}
-
-function fox_initTexture(gl, img, imgName){
-  var fox_tex = gl.createTexture();
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
-  gl.bindTexture(gl.TEXTURE_2D, fox_tex);
-
-  // Set the parameters so we can render any size image.
-  // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-  // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-
-  // Upload the image into the texture.
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-
-  fox_textures[imgName] = fox_tex;
-
-  fox_texCount++;
-  if( fox_texCount == fox_numTextures)drawAll();
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
-  
-}
 
 function drawOnScreen(){
   //gl.clearColor(0,0,0,1);
@@ -1077,4 +968,44 @@ function initFrameBuffer(gl){
                               gl.RENDERBUFFER, depthBuffer);
   frameBuffer.texture = texture;
   return frameBuffer;
+}
+
+function drawOneTextureObject(_modelMatrix, textures, objComponents, objComponentIndex, newViewDir){
+  var _mvpMatrix = new Matrix4();
+  _mvpMatrix.setPerspective(60, 1, 1, 15);
+  if(moving_camera == 0){
+    _mvpMatrix.lookAt(cameraX, cameraY, cameraZ, staX, staY, staZ, 0, 1, 0);
+  }
+  else{
+    _mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 
+      cameraX + newViewDir.elements[0], 
+      cameraY + newViewDir.elements[1], 
+      cameraZ + newViewDir.elements[2], 
+      0, 1, 0);
+  }
+    
+    _mvpMatrix.multiply(_modelMatrix);
+
+    //normal matrix
+  var _normalMatrix = new Matrix4();
+  _normalMatrix.setInverseOf(_modelMatrix);
+  _normalMatrix.transpose();
+  gl.useProgram(programTexture);
+  gl.uniform3f(programTexture.u_LightPosition, 0, 5, 3);
+  gl.uniform1f(programTexture.u_Ka, 0.2);
+  gl.uniform1f(programTexture.u_Kd, 0.7);
+  gl.uniform1f(programTexture.u_Ks, 1.0);
+  gl.uniform1f(programTexture.u_shininess, 10.0);
+  gl.uniformMatrix4fv(programTexture.u_MvpMatrix, false, _mvpMatrix.elements);
+  gl.uniformMatrix4fv(programTexture.u_modelMatrix, false, _modelMatrix.elements);
+  gl.uniformMatrix4fv(programTexture.u_normalMatrix, false, _normalMatrix.elements);
+  for(let i = 0 ; i < objComponents.length ; i ++){
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, textures[objComponentIndex[i]]);
+    gl.uniform1i(programTexture.u_Sampler, 0);
+    initAttributeVariable(gl, programTexture.a_Position, objComponents[i].vertexBuffer);
+    initAttributeVariable(gl, programTexture.a_TexCoord, objComponents[i].texCoordBuffer);
+    initAttributeVariable(gl, programTexture.a_Normal, objComponents[i].normalBuffer);
+    gl.drawArrays(gl.TRIANGLES, 0, objComponents[i].numVertices);
+  }
 }
