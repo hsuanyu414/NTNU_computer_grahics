@@ -283,13 +283,15 @@ var cameraDirX = 0, cameraDirY = 0, cameraDirZ = 1;
 var cube = [];
 var cubeObj = [];
 var textures = {};
-var texCount;
+var texCount = 0 ;
 var numTexture = 1;
 var quadObj;
 var cubeMapTex;
 var newViewDir = new Vector3();
 
 var mode = 0  ;
+var fbo;
+var offScreenWidth = 800, offScreenHeight = 800;
 
 async function main(){
     canvas = document.getElementById('webgl');
@@ -348,6 +350,19 @@ async function main(){
     program.u_Ks = gl.getUniformLocation(program, 'u_Ks');
     program.u_shininess = gl.getUniformLocation(program, 'u_shininess');
     program.u_Color = gl.getUniformLocation(program, 'u_Color'); 
+
+
+    ///// cube
+    response = await fetch('cube.obj');
+      text = await response.text();
+      obj = parseOBJ(text);
+      for( let i=0; i < obj.geometries.length; i ++ ){
+        let o = initVertexBufferForLaterUse(gl, 
+                                            obj.geometries[i].data.position,
+                                            obj.geometries[i].data.normal, 
+                                            obj.geometries[i].data.texcoord);
+        cubeObj.push(o);
+      }
 
     /////3D model battleship
     response = await fetch('battleship/battleship.obj');
@@ -416,9 +431,12 @@ async function main(){
 
     gl.enable(gl.DEPTH_TEST);
 
+    fbo = initFrameBuffer(gl);
+      
     // draw();//draw it once before mouse move
+    // drawAll();
     var tick = function() {
-      drawAll(gl);
+      drawAll();
       requestAnimationFrame(tick);
     }
     tick();
@@ -432,6 +450,18 @@ async function main(){
 function drawAll(){
   mode = 1;
   draw();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  gl.viewport(0, 0, offScreenWidth, offScreenHeight);
+  var oriX = cameraX, oriY = cameraY, oriZ = cameraZ;
+  var oriAX = angleX, oriAY = angleY;
+  cameraX = 3, cameraY = 3, cameraZ = 3;
+  mode = 0 ;
+  draw();
+  cameraX = oriX, cameraY = oriY, cameraZ = oriZ;
+  angelX = oriAX, angleY = oriAY;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  drawOnScreen();
 }
 
 /////Call drawOneObject() here to draw all object one by one 
@@ -447,8 +477,8 @@ function draw(){
     let rotateMatrix = new Matrix4();
     rotateMatrix.setRotate(angleY, 1, 0, 0);//for mouse rotation
     rotateMatrix.rotate(angleX, 0, 1, 0);//for mouse rotation
-    var viewDir= new Vector3([cameraDirX, cameraDirY, cameraDirZ]);
-    var newViewDir = rotateMatrix.multiplyVector3(viewDir);
+    viewDir = new Vector3([cameraDirX, cameraDirY, cameraDirZ]);
+    newViewDir = rotateMatrix.multiplyVector3(viewDir);
     //===================ROTATE===================
 
     gl.useProgram(program);
@@ -471,22 +501,20 @@ function draw(){
     gl.useProgram(programTexture);
     battleship_modelMatrix.setRotate(0, 1, 1, 1);
     battleship_modelMatrix.scale(battleship_objScale, battleship_objScale, battleship_objScale);
-    battleship_modelMatrix.translate(-2.5, 0.2, -2.3);
+    battleship_modelMatrix.translate(-2.5, 0.2, -0.5);
     battleship_modelMatrix.rotate(270, 0, 1, 0);
     battleship_mvpMatrix.setPerspective(60, 1, 1, 15);
     if(mode == 0){
       battleship_mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 0, 0, 0, 0, 1, 0);
     }
-    else if(mode == 1){
+    else{
       battleship_mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 
         cameraX + newViewDir.elements[0], 
         cameraY + newViewDir.elements[1], 
         cameraZ + newViewDir.elements[2], 
         0, 1, 0);
     }
-    else{
-      battleship_mvpMatrix.lookAt(0, 0, 0, 0, 1, 0);
-    }
+    
     battleship_mvpMatrix.multiply(battleship_modelMatrix);
 
     //normal matrix
@@ -520,20 +548,17 @@ function draw(){
     // popMatrix();
     fox_modelMatrix.setRotate(0, 1, 1, 1);
     fox_modelMatrix.scale(fox_objScale, fox_objScale, fox_objScale);
-    fox_modelMatrix.translate(100.0, 10.0, -100);
+    fox_modelMatrix.translate(100.0, 10.0, -20);
     fox_mvpMatrix.setPerspective(60, 1, 1, 15);
     if(mode == 0){
       fox_mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 0, 0, 0, 0, 1, 0);
     }
-    else if(mode == 1){
+    else{
       fox_mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 
         cameraX + newViewDir.elements[0], 
         cameraY + newViewDir.elements[1], 
         cameraZ + newViewDir.elements[2], 
         0, 1, 0);
-    }
-    else{
-      fox_mvpMatrix.lookAt(0, 0, 0, 0, 1, 0);
     }
     fox_mvpMatrix.multiply(fox_modelMatrix);
 
@@ -565,11 +590,16 @@ function draw(){
     var vpFromCamera = new Matrix4();
     vpFromCamera.setPerspective(60, 1, 1, 15);
     var viewMatrixRotationOnly = new Matrix4();
-    viewMatrixRotationOnly.lookAt(cameraX, cameraY, cameraZ, 
+    if(mode == 0){
+      viewMatrixRotationOnly.lookAt(cameraX, cameraY, cameraZ, 0, 0, 0, 0, 1, 0)
+    }
+    else{
+      viewMatrixRotationOnly.lookAt(cameraX, cameraY, cameraZ, 
                                   cameraX + newViewDir.elements[0], 
                                   cameraY + newViewDir.elements[1], 
                                   cameraZ + newViewDir.elements[2], 
                                   0, 1, 0);
+      }
     viewMatrixRotationOnly.elements[12] = 0; //ignore translation
     viewMatrixRotationOnly.elements[13] = 0;
     viewMatrixRotationOnly.elements[14] = 0;
@@ -577,11 +607,16 @@ function draw(){
     var vpFromCameraInverse = vpFromCamera.invert();
     //
     mvpMatrix.setPerspective(60, 1, 1, 15);
-    mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 
-      cameraX + newViewDir.elements[0], 
-      cameraY + newViewDir.elements[1], 
-      cameraZ + newViewDir.elements[2], 
-      0, 1, 0);
+    if(mode == 0){
+      mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 0, 0, 0, 0, 1, 0)
+    }
+    else{
+      mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 
+        cameraX + newViewDir.elements[0], 
+        cameraY + newViewDir.elements[1], 
+        cameraZ + newViewDir.elements[2], 
+        0, 1, 0);
+    }
     mvpMatrix.multiply(modelMatrix);
 
     //normal matrix
@@ -605,16 +640,22 @@ function draw(){
 //colorR, G, B: object color
 function drawOneObject(obj, mdlMatrix, colorR, colorG, colorB, newViewDir){
     //model Matrix (part of the mvp matrix)
+    gl.useProgram(program);
     modelMatrix.setRotate(0, 1, 0, 0);//for mouse rotation
     modelMatrix.multiply(mdlMatrix);
     //mvp: projection * view * model matrix  
     mvpMatrix.setPerspective(60, 1, 1, 15);
 
-    mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 
-      cameraX + newViewDir.elements[0], 
-      cameraY + newViewDir.elements[1], 
-      cameraZ + newViewDir.elements[2],
-      0, 1, 0);
+    if(mode == 0){
+      mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 0, 0, 0, 0, 1, 0);
+    }
+    else{
+      mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 
+        cameraX + newViewDir.elements[0], 
+        cameraY + newViewDir.elements[1], 
+        cameraZ + newViewDir.elements[2], 
+        0, 1, 0);
+    }
     mvpMatrix.multiply(modelMatrix);
 
     //normal matrix
@@ -643,46 +684,6 @@ function drawOneObject(obj, mdlMatrix, colorR, colorG, colorB, newViewDir){
       initAttributeVariable(gl, program.a_Normal, obj[i].normalBuffer);
       gl.drawArrays(gl.TRIANGLES, 0, obj[i].numVertices);
     }
-}
-
-function drawOneTextureObject(obj, mdlMatrix, colorR, colorG, colorB, newViewDir){
-  //model Matrix (part of the mvp matrix)
-  modelMatrix.setRotate(0, 1, 0, 0);//for mouse rotation
-  modelMatrix.multiply(mdlMatrix);
-  //mvp: projection * view * model matrix  
-  mvpMatrix.setPerspective(60, 1, 1, 15);
-
-  mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 
-    cameraX + newViewDir.elements[0], 
-    cameraY + newViewDir.elements[1], 
-    cameraZ + newViewDir.elements[2],
-    0, 1, 0);
-  mvpMatrix.multiply(modelMatrix);
-
-  //normal matrix
-  normalMatrix.setInverseOf(modelMatrix);
-  normalMatrix.transpose();
-
-  lightMatrix.setRotate(0, 1, 0, 0);//for mouse rotation
-  // lightMatrix.scale(0.1, 0.1, 0.1);
-
-  gl.uniform4f(program.u_LightPosition, 0, 5, 3, 1);
-  gl.uniform3f(program.u_ViewPosition, cameraX, cameraY, cameraZ);
-  gl.uniform1f(program.u_Ka, 0.2);
-  gl.uniform1f(program.u_Kd, 0.7);
-  gl.uniform1f(program.u_Ks, 1.0);
-  gl.uniform1f(program.u_shininess, 10.0);
-
-  gl.uniformMatrix4fv(program.u_MvpMatrix, false, mvpMatrix.elements);
-  gl.uniformMatrix4fv(program.u_modelMatrix, false, modelMatrix.elements);
-  gl.uniformMatrix4fv(program.u_normalMatrix, false, normalMatrix.elements);
-  gl.uniformMatrix4fv(program.u_lightMatrix, false, lightMatrix.elements);
-
-  for( let i=0; i < obj.length; i ++ ){
-    initAttributeVariable(gl, program.a_Position, obj[i].vertexBuffer);
-    initAttributeVariable(gl, program.a_Normal, obj[i].normalBuffer);
-    gl.drawArrays(gl.TRIANGLES, 0, obj[i].numVertices);
-  }
 }
 
 function parseOBJ(text) {
@@ -957,11 +958,12 @@ function initTexture(gl, img, imgName){
 
   texCount++;
   if( texCount == numTextures)drawAll();
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
 } 
 
 function battleship_initTexture(gl, img, imgName){
   var battleship_tex = gl.createTexture();
-  // gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
   gl.bindTexture(gl.TEXTURE_2D, battleship_tex);
 
   // Set the parameters so we can render any size image.
@@ -978,6 +980,7 @@ function battleship_initTexture(gl, img, imgName){
 
   battleship_texCount++;
   if( battleship_texCount == battleship_numTextures)drawAll();
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
 }
 
 function fox_initTexture(gl, img, imgName){
@@ -1001,4 +1004,77 @@ function fox_initTexture(gl, img, imgName){
   if( fox_texCount == fox_numTextures)drawAll();
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
   
+}
+
+function drawOnScreen(){
+  //gl.clearColor(0,0,0,1);
+  gl.useProgram(programTexture);
+
+  //model Matrix (part of the mvp matrix)
+  modelMatrix.setRotate(0, 1, 0, 0);//for mouse rotation
+  modelMatrix.translate(0.0, 1.0, -1.5);
+  modelMatrix.scale(1.0, 1.0, 0.01);
+
+  //mvp: projection * view * model matrix  
+  mvpMatrix.setPerspective(60, 1, 1, 15);
+  mvpMatrix.lookAt(cameraX, cameraY, cameraZ, 
+    cameraX + newViewDir.elements[0], 
+    cameraY + newViewDir.elements[1], 
+    cameraZ + newViewDir.elements[2], 
+    0, 1, 0);
+  mvpMatrix.multiply(modelMatrix);
+
+  //normal matrix
+  normalMatrix.setInverseOf(modelMatrix);
+  normalMatrix.transpose();
+
+  gl.uniform3f(programTexture.u_LightPosition, 0, 0, 3);
+  gl.uniform3f(programTexture.u_ViewPosition, cameraX, cameraY, cameraZ);
+  gl.uniform1f(programTexture.u_Ka, 0.2);
+  gl.uniform1f(programTexture.u_Kd, 0.7);
+  gl.uniform1f(programTexture.u_Ks, 0);
+  gl.uniform1f(programTexture.u_shininess, 10.0);
+  gl.uniform1i(programTexture.u_Sampler0, 0);
+
+  gl.uniformMatrix4fv(programTexture.u_MvpMatrix, false, mvpMatrix.elements);
+  gl.uniformMatrix4fv(programTexture.u_modelMatrix, false, modelMatrix.elements);
+  gl.uniformMatrix4fv(programTexture.u_normalMatrix, false, normalMatrix.elements);
+
+  //gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, fbo.texture);
+
+  for( let i=0; i < cubeObj.length; i ++ ){
+    initAttributeVariable(gl, programTexture.a_Position, cubeObj[i].vertexBuffer);
+    initAttributeVariable(gl, programTexture.a_TexCoord, cubeObj[i].texCoordBuffer);
+    initAttributeVariable(gl, programTexture.a_Normal, cubeObj[i].normalBuffer);
+    gl.drawArrays(gl.TRIANGLES, 0, cubeObj[i].numVertices);
+  }
+}
+
+function initFrameBuffer(gl){
+  //create and set up a texture object as the color buffer
+  var texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, offScreenWidth, offScreenHeight,
+                  0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  
+
+  //create and setup a render buffer as the depth buffer
+  var depthBuffer = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+  gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, 
+                          offScreenWidth, offScreenHeight);
+
+  //create and setup framebuffer: linke the color and depth buffer to it
+  var frameBuffer = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, 
+                            gl.TEXTURE_2D, texture, 0);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, 
+                              gl.RENDERBUFFER, depthBuffer);
+  frameBuffer.texture = texture;
+  return frameBuffer;
 }

@@ -43,7 +43,7 @@ var FSHADER_SOURCE = `
       vec3 V = normalize(u_ViewPosition - v_PositionInWorld); 
       vec3 normal = normalize(v_Normal);
       vec3 R = reflect(-V, normal);
-      gl_FragColor = vec4(textureCube(u_envCubeMap, R).rgb, 1.0);
+      gl_FragColor = vec4(textureCube(u_envCubeMap, R).rgb, 1.0)*0.5+(1.0, 1.0, 1.0, 1.0)*0.5;
     }
 `;
 
@@ -250,7 +250,7 @@ function draw(){
   gl.bindTexture(gl.TEXTURE_CUBE_MAP, cubeMapTex);
   gl.uniform1i(programEnvCube.u_envCubeMap, 0);
   initAttributeVariable(gl, programEnvCube.a_Position, quadObj.vertexBuffer);
-  gl.drawArrays(gl.TRIANGLES, 0, quadObj.numVertices);
+  // gl.drawArrays(gl.TRIANGLES, 0, quadObj.numVertices);
 
 
   //Draw the reflective cube
