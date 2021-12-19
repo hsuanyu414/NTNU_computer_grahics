@@ -278,7 +278,7 @@ var fox_objComponentIndex = ["./fox/fox_texture.png"];
 var fox_texCount = 0 ;
 var fox_numTextures = fox_imgNames.length;
 
-var cameraX = 0, cameraY = 1, cameraZ = 4;
+var cameraX = 0, cameraY = 0.5, cameraZ = 4;
 var cameraDirX = 0, cameraDirY = 0, cameraDirZ = 1;
 var cube = [];
 var cubeObj = [];
@@ -455,6 +455,7 @@ function drawAll(){
   draw();
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
   gl.viewport(0, 0, offScreenWidth, offScreenHeight);
+  
   var oriX = cameraX, oriY = cameraY, oriZ = cameraZ;
   var oriAX = angleX, oriAY = angleY;
   cameraX = 3, cameraY = 2, cameraZ = 4;
@@ -892,9 +893,10 @@ function initTexture(gl, img, imgName, textures, texCount, numTextures){
 
   textures[imgName] = tex;
 
+  
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
   texCount++;
   if( texCount == numTextures)drawAll();
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
 } 
 
 function drawOnScreen(){
@@ -902,9 +904,9 @@ function drawOnScreen(){
   gl.useProgram(programTexture);
 
   //model Matrix (part of the mvp matrix)
-  modelMatrix.setRotate(0, 1, 0, 0);//for mouse rotation
-  modelMatrix.translate(0.0, 1.0, -1.5);
-  modelMatrix.scale(1.0, 1.0, 0.01);
+  modelMatrix.setRotate(0, 1, 1, 1);//for mouse rotation
+  modelMatrix.translate(0.0, 1.2, -1.2);
+  modelMatrix.scale(1.0, 1.0, 0.005);
 
   //mvp: projection * view * model matrix  
   mvpMatrix.setPerspective(60, 1, 1, 15);
@@ -919,7 +921,7 @@ function drawOnScreen(){
   normalMatrix.setInverseOf(modelMatrix);
   normalMatrix.transpose();
 
-  gl.uniform3f(programTexture.u_LightPosition, 0, 0, 3);
+  gl.uniform3f(programTexture.u_LightPosition, 0, 1, 3);
   gl.uniform3f(programTexture.u_ViewPosition, cameraX, cameraY, cameraZ);
   gl.uniform1f(programTexture.u_Ka, 0.2);
   gl.uniform1f(programTexture.u_Kd, 0.7);
