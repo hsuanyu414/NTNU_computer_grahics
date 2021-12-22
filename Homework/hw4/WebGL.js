@@ -508,7 +508,7 @@ function draw(){
     gl.useProgram(programTexture);
     battleship_modelMatrix.setRotate(0, 1, 1, 1);
     battleship_modelMatrix.scale(battleship_objScale, battleship_objScale, battleship_objScale);
-    battleship_modelMatrix.translate(-2.5, 0.2, -0.5);
+    battleship_modelMatrix.translate(-2.5, 0.4, -0.5);
     battleship_modelMatrix.rotate(270, 0, 1, 0);
     
     
@@ -905,7 +905,7 @@ function drawOnScreen(){
 
   //model Matrix (part of the mvp matrix)
   modelMatrix.setRotate(0, 1, 1, 1);//for mouse rotation
-  modelMatrix.translate(0.0, 1.2, -1.2);
+  modelMatrix.translate(0.0, 2.0, -1.2);
   modelMatrix.scale(1.0, 1.0, 0.005);
 
   //mvp: projection * view * model matrix  
