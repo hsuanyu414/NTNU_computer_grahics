@@ -86,6 +86,26 @@ var FSHADER_SOURCE_TEXTURE_ON_CUBE = `
   }
 `;
 
+var VSHADER_SOURCE_ENVCUBE = `
+  attribute vec4 a_Position;
+  varying vec4 v_Position;
+  void main() {
+    v_Position = a_Position;
+    gl_Position = a_Position;
+  } 
+`;
+
+var FSHADER_SOURCE_ENVCUBE = `
+  precision mediump float;
+  uniform samplerCube u_envCubeMap;
+  uniform mat4 u_viewDirectionProjectionInverse;
+  varying vec4 v_Position;
+  void main() {
+    vec4 t = u_viewDirectionProjectionInverse * v_Position;
+    gl_FragColor = textureCube(u_envCubeMap, normalize(t.xyz / t.w));
+  }
+`;
+
 function compileShader(gl, vShaderText, fShaderText){
     //////Build vertex and fragment shader objects
     var vertexShader = gl.createShader(gl.VERTEX_SHADER)
@@ -185,6 +205,8 @@ var sonicObj;
 var rotateAngle = 0;
 var fbo;
 var offScreenWidth = 256, offScreenHeight = 256; //for cubemap render
+var vpFromCameraInverse = new Matrix4();
+var newViewDir = new Vector3();
 
 async function main(){
     canvas = document.getElementById('webgl');
@@ -193,6 +215,16 @@ async function main(){
         console.log('Failed to get the rendering context for WebGL');
         return ;
     }
+
+    var quad = new Float32Array(
+      [
+        -1, -1, 1,
+         1, -1, 1,
+        -1,  1, 1,
+        -1,  1, 1,
+         1, -1, 1,
+         1,  1, 1
+      ]); //just a quad
 
     sphereObj = await loadOBJtoCreateVBO('sphere.obj');
     sonicObj = await loadOBJtoCreateVBO('sonic.obj');
@@ -223,6 +255,16 @@ async function main(){
     programTextureOnCube.u_envCubeMap = gl.getUniformLocation(programTextureOnCube, 'u_envCubeMap'); 
     programTextureOnCube.u_Color = gl.getUniformLocation(programTextureOnCube, 'u_Color'); 
     
+    programEnvCube = compileShader(gl, VSHADER_SOURCE_ENVCUBE, FSHADER_SOURCE_ENVCUBE);
+    programEnvCube.a_Position = gl.getAttribLocation(programEnvCube, 'a_Position'); 
+    programEnvCube.u_envCubeMap = gl.getUniformLocation(programEnvCube, 'u_envCubeMap'); 
+    programEnvCube.u_viewDirectionProjectionInverse = 
+               gl.getUniformLocation(programEnvCube, 'u_viewDirectionProjectionInverse'); 
+
+    quadObj = initVertexBufferForLaterUse(gl, quad);
+
+    cubeMapTex = initCubeTexture("pos-x.jpg", "neg-x.jpg", "pos-y.jpg", "neg-y.jpg", 
+                                      "pos-z.jpg", "neg-z.jpg", 512, 512)
 
     fbo = initFrameBufferForCubemapRendering(gl);
 
@@ -266,6 +308,23 @@ function draw(){
   let mdlMatrix = new Matrix4();
   mdlMatrix.setScale(0.5, 0.5, 0.5);
   drawObjectWithDynamicReflection(sphereObj, mdlMatrix, vpMatrix, 0.95, 0.85, 0.4);
+  
+  vpFromCameraInverse = vpMatrix.invert();
+  drawEnvMap();
+  
+}
+
+function drawEnvMap(){
+  
+  gl.useProgram(programEnvCube);
+  gl.depthFunc(gl.LEQUAL);
+  gl.uniformMatrix4fv(programEnvCube.u_viewDirectionProjectionInverse, 
+                      false, vpFromCameraInverse.elements);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_CUBE_MAP, cubeMapTex);
+  gl.uniform1i(programEnvCube.u_envCubeMap, 0);
+  initAttributeVariable(gl, programEnvCube.a_Position, quadObj.vertexBuffer);
+  gl.drawArrays(gl.TRIANGLES, 0, quadObj.numVertices);
 }
 
 function drawRegularObjects(vpMatrix){
@@ -628,8 +687,63 @@ function renderCubeMap(camX, camY, camZ)
                     ENV_CUBE_LOOK_UP[side][0],
                     ENV_CUBE_LOOK_UP[side][1],
                     ENV_CUBE_LOOK_UP[side][2]);
-  
     drawRegularObjects(vpMatrix);
+    
+    vpFromCameraInverse = vpMatrix.invert();
+    drawEnvMap();
   }
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  drawEnvMap();
+}
+
+function initCubeTexture(posXName, negXName, posYName, negYName, 
+                         posZName, negZName, imgWidth, imgHeight)
+{
+  var texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+
+  const faceInfos = [
+    {
+      target: gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+      fName: posXName,
+    },
+    {
+      target: gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+      fName: negXName,
+    },
+    {
+      target: gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+      fName: posYName,
+    },
+    {
+      target: gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+      fName: negYName,
+    },
+    {
+      target: gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+      fName: posZName,
+    },
+    {
+      target: gl.TEXTURE_CUBE_MAP_NEGATIVE_Z,
+      fName: negZName,
+    },
+  ];
+  faceInfos.forEach((faceInfo) => {
+    const {target, fName} = faceInfo;
+    // setup each face so it's immediately renderable
+    gl.texImage2D(target, 0, gl.RGBA, imgWidth, imgHeight, 0, 
+                  gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+    var image = new Image();
+    image.onload = function(){
+      gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+      gl.texImage2D(target, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+      gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+    };
+    image.src = fName;
+  });
+  gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+  gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+
+  return texture;
 }
