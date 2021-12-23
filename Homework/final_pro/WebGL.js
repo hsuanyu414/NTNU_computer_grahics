@@ -125,6 +125,87 @@ var FSHADER_SOURCE_ENVCUBE = `
   }
 `;
 
+
+var VSHADER_SOURCE_BUMP = `
+    attribute vec4 a_Position;
+    attribute vec2 a_TexCoord;
+    attribute vec4 a_Normal;
+    attribute vec3 a_Tagent;
+    attribute vec3 a_Bitagent;
+    attribute float a_crossTexCoord;
+    uniform mat4 u_MvpMatrix;
+    uniform mat4 u_modelMatrix;
+    uniform mat4 u_normalMatrix;
+    varying vec3 v_PositionInWorld;
+    varying vec2 v_TexCoord;
+    varying mat4 v_TBN;
+    varying vec3 v_Normal;
+    void main(){
+        gl_Position = u_MvpMatrix * a_Position;
+        v_PositionInWorld = (u_modelMatrix * a_Position).xyz; 
+        v_Normal = normalize(vec3(u_normalMatrix * a_Normal));
+        v_TexCoord = a_TexCoord;
+        //create TBN matrix 
+        vec3 tagent = normalize(a_Tagent);
+        vec3 bitagent = normalize(a_Bitagent);
+        vec3 nVector;
+        if( a_crossTexCoord > 0.0){
+          nVector = cross(tagent, bitagent);
+        } else{
+          nVector = cross(bitagent, tagent);
+        }
+        v_TBN = mat4(tagent.x, tagent.y, tagent.z, 0.0, 
+                           bitagent.x, bitagent.y, bitagent.z, 0.0,
+                           nVector.x, nVector.y, nVector.z, 0.0, 
+                           0.0, 0.0, 0.0, 1.0);
+    }    
+`;
+
+var FSHADER_SOURCE_BUMP = `
+    precision mediump float;
+    uniform vec3 u_LightPosition;
+    uniform vec3 u_ViewPosition;
+    uniform float u_Ka;
+    uniform float u_Kd;
+    uniform float u_Ks;
+    uniform vec3 u_Color;
+    uniform float u_shininess;
+    uniform sampler2D u_Sampler0;
+    uniform highp mat4 u_normalMatrix;
+    varying vec3 v_PositionInWorld;
+    varying vec2 v_TexCoord;
+    varying mat4 v_TBN;
+    varying vec3 v_Normal;
+    void main(){
+        // (you can also input them from ouside and make them different)
+        vec3 ambientLightColor = u_Color.rgb;
+        vec3 diffuseLightColor = u_Color.rgb;
+        // assume white specular light (you can also input it from ouside)
+        vec3 specularLightColor = vec3(1.0, 1.0, 1.0);        
+
+        vec3 ambient = ambientLightColor * u_Ka;
+
+        //normal vector from normal map
+        vec3 nMapNormal = normalize( texture2D( u_Sampler0, v_TexCoord ).rgb * 2.0 - 1.0 );
+        vec3 normal = normalize( vec3( u_normalMatrix * v_TBN * vec4( nMapNormal, 1.0) ) );
+        
+        vec3 lightDirection = normalize(u_LightPosition - v_PositionInWorld);
+        float nDotL = max(dot(lightDirection, normal), 0.0);
+        vec3 diffuse = diffuseLightColor * u_Kd * nDotL;
+
+        vec3 specular = vec3(0.0, 0.0, 0.0);
+        if(nDotL > 0.0) {
+            vec3 R = reflect(-lightDirection, normal);
+    
+            vec3 V = normalize(u_ViewPosition - v_PositionInWorld); 
+            float specAngle = clamp(dot(R, V), 0.0, 1.0);
+            specular = u_Ks * pow(specAngle, u_shininess) * specularLightColor; 
+        }
+
+        gl_FragColor = vec4( ambient + diffuse + specular, 1.0 );
+    }
+`;
+
 var mdlStack = [];
 var mdlMatrix = new Matrix4();
 function pushMatrix(){
@@ -279,7 +360,7 @@ var fox_objComponentIndex = ["./fox/fox_texture.png"];
 var fox_texCount = 0 ;
 var fox_numTextures = fox_imgNames.length;
 
-var cameraX = 0, cameraY = 0.5, cameraZ = 4;
+var cameraX = 0, cameraY = 0.68, cameraZ = 4;
 var cameraDirX = 0, cameraDirY = 0, cameraDirZ = 1;
 var cube = [];
 var cubeObj = [];
@@ -353,6 +434,28 @@ async function main(){
     program.u_shininess = gl.getUniformLocation(program, 'u_shininess');
     program.u_Color = gl.getUniformLocation(program, 'u_Color'); 
 
+    programBump = compileShader(gl, VSHADER_SOURCE_BUMP, FSHADER_SOURCE_BUMP);
+    programBump.a_Position = gl.getAttribLocation(programBump, 'a_Position'); 
+    programBump.a_Normal = gl.getAttribLocation(programBump, 'a_Normal'); 
+    programBump.a_TexCoord = gl.getAttribLocation(programBump, 'a_TexCoord'); 
+    programBump.a_Tagent = gl.getAttribLocation(programBump, 'a_Tagent'); 
+    programBump.a_Bitagent = gl.getAttribLocation(programBump, 'a_Bitagent'); 
+    programBump.a_crossTexCoord = gl.getAttribLocation(programBump, 'a_crossTexCoord'); 
+    programBump.u_MvpMatrix = gl.getUniformLocation(programBump, 'u_MvpMatrix'); 
+    programBump.u_modelMatrix = gl.getUniformLocation(programBump, 'u_modelMatrix'); 
+    programBump.u_normalMatrix = gl.getUniformLocation(programBump, 'u_normalMatrix');
+    programBump.u_LightPosition = gl.getUniformLocation(programBump, 'u_LightPosition');
+    programBump.u_ViewPosition = gl.getUniformLocation(programBump, 'u_ViewPosition');
+    programBump.u_Ka = gl.getUniformLocation(programBump, 'u_Ka'); 
+    programBump.u_Kd = gl.getUniformLocation(programBump, 'u_Kd');
+    programBump.u_Ks = gl.getUniformLocation(programBump, 'u_Ks');
+    programBump.u_Color = gl.getUniformLocation(programBump, 'u_Color');
+    programBump.u_shininess = gl.getUniformLocation(programBump, 'u_shininess');
+    programBump.u_Sampler0 = gl.getUniformLocation(programBump, 'u_Sampler0');
+
+    // var normalMapImage = new Image();
+    // normalMapImage.onload = function(){initTexture(gl, normalMapImage, "normalMapImage");};
+    // normalMapImage.src = "normalMap.jpeg";
 
     ///// cube
     response = await fetch('cube.obj');
@@ -493,15 +596,15 @@ function draw(){
 
     gl.useProgram(program);
     
-    //cube (light)
-    mdlMatrix.setRotate(0, 1, 1, 1);
-    mdlMatrix.translate(0, 5, 3);
-    mdlMatrix.scale(0.1 , 0.1 , 0.1 );
-    drawOneObject(cube, mdlMatrix, 0.0, 1.0, 1.0, newViewDir);
+    // //cube (light)
+    // mdlMatrix.setRotate(0, 1, 1, 1);
+    // mdlMatrix.translate(0, 5, 3);
+    // mdlMatrix.scale(0.1 , 0.1 , 0.1 );
+    // drawOneObject(cube, mdlMatrix, 0.0, 1.0, 1.0, newViewDir);
     //Cube (ground)
     //TODO-1: set mdlMatrix for the cube 
     mdlMatrix.setRotate(0, 1, 1, 1);
-    mdlMatrix.scale(2.5, 0.1, 2.5);
+    mdlMatrix.scale(3.0, 0.1, 3.0);
     drawOneObject(cube, mdlMatrix, 0.0, 1.0, 1.0, newViewDir);
 
     // pushMatrix();
@@ -512,7 +615,7 @@ function draw(){
     battleship_modelMatrix.setRotate(rotating, 0, 1, 0);
     
     battleship_modelMatrix.scale(battleship_objScale, battleship_objScale, battleship_objScale);
-    battleship_modelMatrix.translate(-4.0, 0.4, -0.5);
+    battleship_modelMatrix.translate(-5.0, 0.4, -0.5);
     battleship_modelMatrix.rotate(270, 0, 1, 0);
     if(rotating%31 <= 15){
       battleship_modelMatrix.rotate(rotating%31-7.5, 1, 0, 0)
@@ -527,8 +630,8 @@ function draw(){
     
     //fox
     fox_modelMatrix.setRotate(0, 1, 1, 1);
+    fox_modelMatrix.translate(0, 0.075, 0.0);
     fox_modelMatrix.scale(fox_objScale, fox_objScale, fox_objScale);
-    fox_modelMatrix.translate(100.0, 10.0, -20);
     drawOneTextureObject(fox_modelMatrix,
       fox_textures, fox_objComponents, fox_objComponentIndex, newViewDir);
 
@@ -894,6 +997,12 @@ function keydown(ev){
   }
   else if(ev.key == '`'){
     moving_camera = (moving_camera==0);
+  }
+  else if(ev.key == 'e'){
+    cameraY += 0.01;
+  }
+  else if(ev.key == 'd'){
+    cameraY -= 0.01;
   }
 
   console.log(cameraX, cameraY, cameraZ)
