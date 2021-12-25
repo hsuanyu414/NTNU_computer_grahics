@@ -307,6 +307,7 @@ function draw(){
   //the sphere
   let mdlMatrix = new Matrix4();
   mdlMatrix.setScale(0.5, 0.5, 0.5);
+  
   drawObjectWithDynamicReflection(sphereObj, mdlMatrix, vpMatrix, 0.95, 0.85, 0.4);
   
   vpFromCameraInverse = vpMatrix.invert();
