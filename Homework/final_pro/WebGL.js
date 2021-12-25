@@ -34,8 +34,8 @@ var FSHADER_SOURCE = `
         vec3 specularLightColor = vec3(1.0, 1.0, 1.0);        
         vec3 ambient = ambientLightColor * u_Ka;
         vec3 normal = normalize(v_Normal);
-        vec3 v_LightPosition = (u_lightMatrix * u_LightPosition).xyz;
-        // vec3 v_LightPosition = (u_LightPosition).xyz;
+        // vec3 v_LightPosition = (u_lightMatrix * u_LightPosition).xyz;
+        vec3 v_LightPosition = (u_LightPosition).xyz;
         vec3 lightDirection = normalize(v_LightPosition - v_PositionInWorld);
         float nDotL = max(dot(lightDirection, normal), 0.0);
         vec3 diffuse = diffuseLightColor * u_Kd * nDotL;
@@ -575,10 +575,6 @@ async function main(){
     programRefla.u_envCubeMap = gl.getUniformLocation(programRefla, 'u_envCubeMap');
 
 
-    // var normalMapImage = new Image();
-    // normalMapImage.onload = function(){initTexture(gl, normalMapImage, "normalMapImage");};
-    // normalMapImage.src = "normalMap.jpeg";
-
     ///// cube
     response = await fetch('cube.obj');
       text = await response.text();
@@ -667,9 +663,14 @@ async function main(){
 
 
     foxObj = await loadOBJtoCreateBumpVBO('fox/fox.obj');
+    cubeForBumpObj = await loadOBJtoCreateBumpVBO('cube.obj');
     var normalMapImage = new Image();
     normalMapImage.onload = function(){initTextureBump(gl, normalMapImage, "normalMapImage");};
     normalMapImage.src = "normalMap.jpeg";
+
+    var oceanMapImage = new Image();
+    oceanMapImage.onload = function(){initTextureBump(gl, oceanMapImage, "oceanMapImage");};
+    oceanMapImage.src = "oceanMap.jpeg";
 
     ////cube
     //TODO-1: create vertices for the cube whose edge length is 2.0 (or 1.0 is also fine)
@@ -780,7 +781,7 @@ function draw(){
     
     mdlMatrix.translate(0, -0.1, 0);
     mdlMatrix.scale(3.0, 0.2, 3.0);
-    drawOneObject(cube, mdlMatrix, 0.0, 0.9, 1.0, newViewDir);
+    // drawOneObject(cube, mdlMatrix, 0.0, 0.9, 1.0, newViewDir);
 
     mdlMatrix.setRotate(0, 1, 1, 1);
     mdlMatrix.translate(0, -0.02, -0.2);
@@ -925,7 +926,15 @@ function draw(){
       mdlMatrix.translate(0, (60-rotating%61-15)/1000, 0)
     }
     mdlMatrix.scale(fox_objScale, fox_objScale, fox_objScale);
-    drawOneRegularObject(foxObj, mdlMatrix, vpMatrix, 0.5, 0.5, 0.5);
+    drawOneRegularObject(foxObj, mdlMatrix, vpMatrix, 0.5, 0.5, 0.5,"normalMapImage");
+    
+    mdlMatrix.setRotate(0, 1, 0, 0);//for mouse rotation
+    mdlMatrix.rotate(0, 0, 1, 0);//for mouse rotation
+    mdlMatrix.translate(0.0, -2.9, 0.0)
+    mdlMatrix.scale(3.0, 3.0, 3.0)
+    drawOneRegularObject(cubeForBumpObj, mdlMatrix, vpMatrix, 0.0, 0.9, 1.0,"oceanMapImage");
+    
+    
 
     //quad
     // console.log(vpFromCameraInverse.elements);
@@ -1479,7 +1488,7 @@ function drawOneTextureObject(_modelMatrix, textures, objComponents, objComponen
   }
 }
 
-function drawOneRegularObject(obj, modelMatrix, vpMatrix, colorR, colorG, colorB){
+function drawOneRegularObject(obj, modelMatrix, vpMatrix, colorR, colorG, colorB, img){
   gl.useProgram(programBump);
   let mvpMatrix = new Matrix4();
   let normalMatrix = new Matrix4();
@@ -1496,6 +1505,9 @@ function drawOneRegularObject(obj, modelMatrix, vpMatrix, colorR, colorG, colorB
   gl.uniform1f(programBump.u_Kd, 0.7);
   gl.uniform1f(programBump.u_Ks, 1.0);
   gl.uniform1f(programBump.u_shininess, 40.0);
+  if(moving_camera == 0){
+    gl.uniform3f(programBump.u_ViewPosition, 3, 2, 4);
+  }
   gl.uniform3f(programBump.u_Color, colorR, colorG, colorB);
   gl.uniform1i(programBump.u_Sampler0, 0);
   gl.uniform1i(programBump.u_Sampler1, 1);
@@ -1505,7 +1517,7 @@ function drawOneRegularObject(obj, modelMatrix, vpMatrix, colorR, colorG, colorB
   gl.uniformMatrix4fv(programBump.u_normalMatrix, false, normalMatrix.elements);
 
   gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, textures["normalMapImage"]);
+  gl.bindTexture(gl.TEXTURE_2D, textures[img]);
 
   for( let i=0; i < obj.length; i ++ ){
     initAttributeVariable(gl, programBump.a_Position, obj[i].vertexBuffer);
