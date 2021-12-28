@@ -467,7 +467,7 @@ var dolphin_texCount = 0 ;
 var dolphin_numTextures = dolphin_imgNames.length;
 
 
-var cameraX = 0, cameraY = 0.68, cameraZ = 2.2;
+var cameraX = 0, cameraY = 0.86, cameraZ = 2.2;
 var lightX = 0, lightY = 5, lightZ = 3;
 var cameraDirX = 0, cameraDirY = 0, cameraDirZ = 1;
 var cube = [];
@@ -821,7 +821,7 @@ function draw(){
       steve_textures, steve_objComponents, steve_objComponentIndex, newViewDir);
   
     dolphin_modelMatrix = new Matrix4();
-    dolphin_modelMatrix.setRotate(rotating+45, 0, 1, 0);
+    dolphin_modelMatrix.setRotate(rotating-45, 0, 1, 0);
     dolphin_modelMatrix.scale(dolphin_objScale*5, dolphin_objScale*5, dolphin_objScale*5);
     dolphin_modelMatrix.translate(-5.5, -0.0, -0.5);
     dolphin_modelMatrix.rotate(0, 0, 1, 0);
@@ -853,10 +853,10 @@ function draw(){
     
     steve_modelMatrix = new Matrix4();
     steve_modelMatrix.setRotate(0, 0, 1, 0);
-    steve_modelMatrix.translate(cameraX, cameraY-0.6, cameraZ);
+    steve_modelMatrix.translate(cameraX, cameraY-0.8, cameraZ);
     steve_modelMatrix.rotate(90, 0, 1, 0);
     steve_modelMatrix.rotate(angleX+180, 0, 1, 0);
-    steve_modelMatrix.rotate(-angleY, 1, 0, 0);
+    // steve_modelMatrix.rotate(-angleY, 1, 0, 0);
     steve_modelMatrix.scale(steve_objScale, steve_objScale, steve_objScale);
     drawOneTextureObject(steve_modelMatrix,
       steve_textures, steve_objComponents, steve_objComponentIndex, newViewDir);
@@ -1241,7 +1241,8 @@ function mouseMove(ev){
         var dy = factor * (y - mouseLastY);
 
         angleX += dx; //yes, x for y, y for x, this is right
-        angleY += 0//dy;
+        angleY += dy;//dy;
+        angleY *= moving_camera;
     }
     mouseLastX = x;
     mouseLastY = y;
@@ -1323,15 +1324,18 @@ function keydown(ev){
     moving_camera = (moving_camera==0);
   }
   else if(ev.key == 'e'){
-    cameraY += 0.01;
+    cameraY += 0.03;
   }
   else if(ev.key == 'd'){
-    cameraY -= 0.01;
+    cameraY -= 0.03;
   }
   else if(ev.key == 'r'){
     cameraX = 0;
-    cameraY = 0.68;
+    cameraY = 0.86;
     cameraZ = 2.2;
+    angleX = 180 ;
+    angleY = 0 ;
+    speed = 1;
   }
   else if(ev.key == '+'){
     speed += 0.1;
