@@ -1322,6 +1322,7 @@ function keydown(ev){
   }
   else if(ev.key == '`'){
     moving_camera = (moving_camera==0);
+    angleY *= moving_camera;
   }
   else if(ev.key == 'e'){
     cameraY += 0.03;
