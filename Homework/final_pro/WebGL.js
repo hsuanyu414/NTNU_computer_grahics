@@ -480,7 +480,7 @@ var cubeMapTex;
 var newViewDir = new Vector3();
 var staX = 0, staY = 0, staZ = 0;//static camera look at
 
-var moving_camera = 0  ;
+var moving_camera = 1  ;
 var speed = 1;
 var tempspeed = 0 ;
 var fbo;
